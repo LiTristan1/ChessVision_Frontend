@@ -1,18 +1,51 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
-
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
-
-SplashScreen.preventAutoHideAsync();
-
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+import { NativeTabs } from "expo-router/unstable-native-tabs";
+import "../../global.css";
+export default function RootLayout() {
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
-    </ThemeProvider>
-  );
+    <NativeTabs>
+      <NativeTabs.Trigger name = "index">
+        <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          sf = "house.fill"
+        >
+
+        </NativeTabs.Trigger.Icon>
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name = "explorer">
+        <NativeTabs.Trigger.Label>Explore</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          sf = "house.fill"
+        >
+        </NativeTabs.Trigger.Icon>
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name = "games">
+        <NativeTabs.Trigger.Label>Games</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          sf = "house.fill"
+        >
+
+        </NativeTabs.Trigger.Icon>
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name = "insights">
+        <NativeTabs.Trigger.Label>Insights</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          sf = "house.fill"
+        >
+
+        </NativeTabs.Trigger.Icon>
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name = "profile">
+        <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          sf = "house.fill"
+        >
+
+        </NativeTabs.Trigger.Icon>
+      </NativeTabs.Trigger>
+    </NativeTabs>
+  )
 }
