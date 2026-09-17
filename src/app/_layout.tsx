@@ -20,8 +20,8 @@ export default function RootLayout() {
         </NativeTabs.Trigger.Icon>
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name = "games">
-        <NativeTabs.Trigger.Label>Games</NativeTabs.Trigger.Label>
+      <NativeTabs.Trigger name = "analysis">
+        <NativeTabs.Trigger.Label>Analysis</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
           sf = "house.fill"
         >

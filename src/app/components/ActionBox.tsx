@@ -1,5 +1,6 @@
 import { FontAwesome6 } from '@react-native-vector-icons/fontawesome6';
-import { View } from "react-native";
+import { Text, View } from "react-native";
+import { ComponentBackground } from '../themes/themes';
 
 
 type Props = {
@@ -7,15 +8,20 @@ type Props = {
     icon: any
 }
 export function ActionBox(
-    props: Props
+   {description, icon}: Props
 ){
     return (
-        <View className = 'flex flex-col'>
+        <View className = 'flex flex-col w-[48%] bg-[#101C28] rounded-xl min-h-[80px] justify-center items-center'>
             <FontAwesome6
-                name = {props.icon}
+                name = {icon}
                 size = {24}
-                color = {"white"}
+                color = {ComponentBackground}
             />
+            <Text
+                className = 'text-white'
+            >
+                {description}
+            </Text>
         </View>
     )
 }
