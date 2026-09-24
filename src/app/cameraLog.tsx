@@ -1,5 +1,5 @@
 import { Text, View } from "react-native"
-export default function Insights(){
+export default function CameraLog() {
     return (
         <View>
             <Text>

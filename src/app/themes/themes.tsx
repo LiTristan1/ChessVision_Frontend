@@ -14,6 +14,14 @@ export const TextStyles = StyleSheet.create({
     tertiary: {
         fontSize: 24,
         color: 'white'
+    },
+    description: {
+        fontSize: 16,
+        color: 'white'
+    },
+    subtitle: {
+        fontSize: 16,
+        color: 'grey'
     }
 })
 
@@ -25,7 +33,9 @@ export const containers = StyleSheet.create({
         height: "100%",
         backgroundColor: "#000000",
         padding: 5,
-        
+        gap: 16,
+
+
     },
     ScrollContainer: {
         gap: 15,
@@ -36,7 +46,9 @@ export const containers = StyleSheet.create({
 
 export const colors = {
     iconTint: "#4D7CFE",
-    componentBackground: "#101C28"
+    componentBackground: "#101C28",
+    chessSquareLightColor: "#E5EBCB",
+    chessSquareDarkColor: "#7FA273",
 }
 
 
