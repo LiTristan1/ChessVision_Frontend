@@ -12,6 +12,10 @@ export class ChessGame {
     constructor(startingPosition: Position | null) {
         this.positions = startingPosition
     }
+
+    parseGame(notation: string[][]){
+        //make a new position for 
+    }
 }
 //test
 export class Position {

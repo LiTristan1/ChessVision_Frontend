@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChessBoard } from "./components/ChessBoard";
-import { MovesGrid } from "./components/MovesGrid";
-import { ChessBoardModel, ChessGame, Position } from "./models/pieces";
-import { containers, TextStyles } from "./themes/themes";
+import { ChessBoard } from "../components/ChessBoard";
+import { MovesGrid } from "../components/MovesGrid";
+import { ChessBoardModel, ChessGame, Position } from "../models/pieces";
+import { containers, TextStyles } from "../themes/themes";
 export default function Games() {
 
     let initChessBoard = new ChessBoardModel()

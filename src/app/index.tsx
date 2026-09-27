@@ -1,53 +1,140 @@
-import { verifyInstallation } from "nativewind";
-import { ScrollView, Text, View } from "react-native";
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { ActionBox } from "./components/ActionBox";
+import FontAwesome6 from "@react-native-vector-icons/fontawesome6";
+import { Image } from "expo-image";
+import { cssInterop } from "nativewind";
+import { useState } from "react";
+import { Pressable, Text, TextInput, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { AppTitle } from "./components/appTitle";
-import { SearchBar } from "./components/SearchBar";
-import { Slide } from "./components/Slide";
-import { containers, TextStyles } from "./themes/themes";
-export default function Index() {
-  verifyInstallation()
-  return (
-    <SafeAreaView style = {containers.PrimaryContainer}>
-      <ScrollView contentContainerStyle = {containers.ScrollContainer}>
-        <AppTitle/>
-        <Slide
-          description = "Analyze chess positions, explore opening trends, and discover how top grandmasters approached similar positions throughout chess history."
-          image={require("./public/assets/chessVisionLogo.png")}
-        />
-        <SearchBar
-          placeholder = {"Search an opening, position, or player..."}
-        />
-        {/**Grid of actions */}
-        <View className = "flex flex-row flex-wrap gap-4">
-          <ActionBox
-            icon="chess-board"
-            description="Analyze Position"
-          />
+cssInterop(Image, {
+    className: "style",
+});
 
-          <ActionBox
-            icon="compass"
-            description="Explore Openings"
-          />
+export default function Login() {
+    const [isRegistering, setIsRegistering] = useState<Boolean>(false)
+    const [username, setUsername] = useState<string>("")
+    const [password, setPassword] = useState<string>("")
+    const [chessComUsername, setChessComUsername] = useState<string>("")
 
-          <ActionBox
-            icon="chess-knight"
-            description="GM Games"
-          />
+    return (
+        <SafeAreaView
+            className='flex-1 w-full h-full bg-red-500 items-center'
+        >
+            <Image
+                className='absolute inset-0 left-0 right-0 -top-16'
+                source={require('./public/assets/login_background.png')}
+                contentFit='cover'
+            />
 
-          <ActionBox
-            icon="chart-line"
-            description="Insights"
-          />
-        </View>
+            <View
+                className='w-full flex justify-center items-center gap-8 mt-2'
+            >
+                <FontAwesome6
+                    name="chess-knight"
+                    size={30}
+                    iconStyle="solid"
+                    color="#0EA5E9"
+                />
+                <AppTitle
+                    showOnlyTitle={false}
+                />
+            </View>
 
-        <Text style = {TextStyles.secondary}>
-          Recent Analysis
-        </Text>
-      </ScrollView>
-    </SafeAreaView>
-  );
+            <View
+                className='flex-1 justify-end w-5/6 items-center pb-10'
+            >
+                <View className='bg-black/90 w-full rounded-2xl p-6 gap-4'>
+
+                    <View>
+                        <Text className='text-white mb-2 font-semibold'>
+                            Username
+                        </Text>
+
+                        <TextInput
+                            className='w-full h-[50px] bg-[#1B2733] text-white rounded-xl px-4 border border-[#344454]'
+                            value={username}
+                            placeholder="Enter your username"
+                            placeholderTextColor="#7D8995"
+                            onChangeText={setUsername}
+                        />
+                    </View>
+
+                    <View>
+                        <Text className='text-white mb-2 font-semibold'>
+                            Password
+                        </Text>
+
+                        <TextInput
+                            className='w-full h-[50px] bg-[#1B2733] text-white rounded-xl px-4 border border-[#344454]'
+                            value={password}
+                            placeholder="Enter your password"
+                            placeholderTextColor="#7D8995"
+                            secureTextEntry
+                            onChangeText={setPassword}
+                        />
+                    </View>
+
+                    {
+                        isRegistering &&
+                        <View>
+                            <Text className='text-white mb-2 font-semibold'>
+                                Chess.com Username
+                            </Text>
+
+                            <TextInput
+                                className='w-full h-[50px] bg-[#1B2733] text-white rounded-xl px-4 border border-[#344454]'
+                                value={chessComUsername}
+                                placeholder="Enter your Chess.com username"
+                                placeholderTextColor="#7D8995"
+                                onChangeText={setChessComUsername}
+                            />
+                            <Pressable
+                                className='w-full h-[50px] bg-[#4D7CFE] rounded-xl justify-center items-center mt-5 mb-2'
+                            >
+                                <Text className='text-white font-bold text-base'>
+                                    Sign Up
+                                </Text>
+                            </Pressable>
+                            <Pressable
+                                className='w-full h-[50px] border border-[#4D7CFE] rounded-xl justify-center items-center'
+                                onPress={() => { setIsRegistering(false) }}
+                            >
+                                <Text className='text-[#4D7CFE] font-semibold text-base'>
+                                    Login
+                                </Text>
+                            </Pressable>
+                        </View>
+
+
+                    }
+                    {
+                        !isRegistering && <View>
+                            <Pressable
+                                className='w-full h-[50px] bg-[#4D7CFE] rounded-xl justify-center items-center mt-2'
+                            >
+                                <Text className='text-white font-bold text-base'>
+                                    Login
+                                </Text>
+                            </Pressable>
+                            <View className='flex-row w-full flex justify-center items-center'>
+                                <View className='flex-1 bg-gray-600 h-[1px] mr-2'></View>
+                                <Text className='text-white text-center mt-2 mb-2'>Or</Text>
+                                <View className='flex-1 bg-gray-600 h-[1px] ml-2'></View>
+
+                            </View>
+                            <Pressable
+                                className='w-full h-[50px] border border-[#4D7CFE] rounded-xl justify-center items-center'
+                                onPress={() => { setIsRegistering(true) }}
+                            >
+                                <Text className='text-[#4D7CFE] font-semibold text-base'>
+                                    Create an account
+                                </Text>
+                            </Pressable>
+                        </View>
+                    }
+
+                </View>
+            </View>
+
+        </SafeAreaView>
+    )
 }
-
-
