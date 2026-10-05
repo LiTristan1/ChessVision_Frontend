@@ -1,53 +1,156 @@
 import { useState } from "react";
-import { Pressable, ScrollView, Text } from "react-native";
-import { ChessGame } from "../models/pieces";
+import { Pressable, ScrollView, Text, View } from "react-native";
+import { ChessGame, Position } from "../models/pieces";
 
 type Props = {
-    game: ChessGame
-    moves: string[][]
+    game: ChessGame;
+    moves: string[][];
+    moveIndex: number;
+    setCurrentPosition: React.Dispatch<React.SetStateAction<Position>>;
 };
 
-export function MovesGrid({ game, moves }: Props) {
-    const [selectedMove, setSelectedMove] = useState<number | null>(null);
+type selectedMove = {
+    index: number;
+    color: "white" | "black";
+};
+
+export function MovesGrid({
+    game,
+    moves,
+    moveIndex,
+    setCurrentPosition
+}: Props) {
+
+    const [selectedMove, setSelectedMove] =
+        useState<selectedMove | null>(null);
+
     return (
-        <ScrollView className="w-full px-3 ">
-
-
+        <ScrollView
+            className="w-full px-3 py-1"
+            showsVerticalScrollIndicator={false}
+        >
             {moves.map((move, index) => {
-                const selected = selectedMove === index;
+
+                const selected = selectedMove?.index === index;
 
                 return (
-                    <Pressable
+                    <View
                         key={index}
-                        onPress={() => setSelectedMove(index)}
                         className={`
                             flex-row
                             items-center
                             w-full
-                            p-2
-                            rounded-sm
-                           ${selected
-                                ? "bg-[#18243A] border border-[#4D7CFE]"
-                                : "bg-[#080B0F]"
+                            px-2
+                            py-1
+                            rounded-md
+                            ${selected ||
+                                (index === moveIndex && selectedMove === null)
+                                ? "bg-[#18243A]"
+                                : "bg-[#0D1117]"
                             }
                         `}
                     >
-                        <Text className="w-[15%] text-gray-400">
+
+                        {/* Move Number */}
+                        <Text className="w-[15%] text-[#64748B] text-sm font-medium">
                             {index + 1}.
                         </Text>
 
-                        <Text className="w-[35%] text-white font-medium">
-                            {move[0]}
-                        </Text>
-                        <Text className="w-[35%] text-white font-medium">
-                            {move[1]}
-                        </Text>
+                        {/* White Move */}
+                        <Pressable
+                            className="w-[35%] justify-center px-1 py-1"
+                            onPress={() => {
 
+                                var current = game.positions;
 
-                    </Pressable>
+                                while (
+                                    (
+                                        current?.moveIndex != selectedMove?.index ||
+                                        current?.position?.whosMove != "white"
+                                    ) &&
+                                    current != null &&
+                                    current != undefined
+                                ) {
+                                    current = current.next[0];
+                                }
+
+                                if (
+                                    current != undefined &&
+                                    current != null
+                                ) {
+                                    setSelectedMove({
+                                        index: index,
+                                        color: "white"
+                                    });
+
+                                    setCurrentPosition(current);
+                                }
+                            }}
+                        >
+                            <Text
+                                className={`
+                                    text-sm
+                                    font-medium
+                                    ${selectedMove?.index === index &&
+                                        selectedMove?.color === "white"
+                                        ? "text-[#60A5FA]"
+                                        : "text-[#E2E8F0]"
+                                    }
+                                `}
+                            >
+                                {move[0]}
+                            </Text>
+                        </Pressable>
+
+                        {/* Black Move */}
+                        <Pressable
+                            className="w-[35%] justify-center px-1 py-1"
+                            onPress={() => {
+
+                                var current = game.positions;
+
+                                while (
+                                    (
+                                        current?.moveIndex != selectedMove?.index ||
+                                        current?.position?.whosMove != "black"
+                                    ) &&
+                                    current != null &&
+                                    current != undefined
+                                ) {
+                                    current = current.next[0];
+                                }
+
+                                if (
+                                    current != undefined &&
+                                    current != null
+                                ) {
+                                    setSelectedMove({
+                                        index: index,
+                                        color: "black"
+                                    });
+
+                                    setCurrentPosition(current);
+                                }
+                            }}
+                        >
+                            <Text
+                                className={`
+                                    text-sm
+                                    font-medium
+                                    ${selectedMove?.index === index &&
+                                        selectedMove?.color === "black"
+                                        ? "text-[#60A5FA]"
+                                        : "text-[#E2E8F0]"
+                                    }
+                                `}
+                            >
+                                {move[1]}
+                            </Text>
+                        </Pressable>
+
+                    </View>
                 );
             })}
-
         </ScrollView>
     );
 }

@@ -1,3 +1,4 @@
+import { UCIMove } from "../types/responses";
 
 
 export class ChessGameTree {
@@ -13,9 +14,33 @@ export class ChessGame {
         this.positions = startingPosition
     }
 
-    parseGame(notation: string[][]){
-        //make a new position for 
+    static convertToUciMoves(game: ChessGame): string[] {
+        const uciMoves: string[] = [];
+
+        let currentPosition = game.positions;
+
+        while (currentPosition?.next[0]) {
+            const nextPosition = currentPosition.next[0];
+
+            const from = nextPosition.move?.from;
+            const to = nextPosition.move?.to;
+
+            let uciMove = `${from}${to}`;
+
+            // Promotion in UCI:
+            // e7e8q, e7e8r, e7e8b, e7e8n
+            if (nextPosition.move?.promotion) {
+                uciMove += nextPosition.move?.promotion.toLowerCase();
+            }
+
+            uciMoves.push(uciMove);
+
+            currentPosition = nextPosition;
+        }
+
+        return uciMoves;
     }
+
 }
 //test
 export class Position {
@@ -29,6 +54,8 @@ export class Position {
     next: Position[] = []
     prev: (Position | null) = null
     movePlayed: string | null = null
+    moveIndex: number = 0
+    move: UCIMove | null = null
     constructor(position: ChessBoardModel | null, next: Position[], prev: Position | null) {
         this.position = position
         this.next = next
@@ -69,7 +96,7 @@ export class ChessBoardModel {
     previouslyMovedPieceSquare: number[] = []
     movingPiece: number[] = []
     possibleMoves: number[][] = []
-    isPromoting: boolean = false
+    promotingPiece: "knight" | "bishop" | "rook" | "queen" | null = null
     constructor() {
 
     }
@@ -220,19 +247,64 @@ export class ChessBoardModel {
         return this.previouslyMovedPieceSquare[0] == row && this.previouslyMovedPieceSquare[1] == col
     }
 
-    movePiece(rowFrom: number, colFrom: number, rowTo: number, colTo: number) {
+    movePiece(rowFrom: number, colFrom: number, rowTo: number, colTo: number, promoteTo: "queen" | "knight" | "bishop" | "rook" | null = null) {
         //if en passant happens what do we do
-        if (this.board[rowFrom][colFrom].chessPiece?.type == 'pawn' && colFrom != colTo) {
+        const movingPiece = this.board[rowFrom][colFrom].chessPiece
+        if (movingPiece == null) {
+            return;
+        }
+        if (movingPiece?.type == 'pawn' && colFrom != colTo && this.board[rowTo][colTo].chessPiece === null && promoteTo == null
+        ) {
             //capture the pawn it just skipped
             this.board[rowFrom][colTo].chessPiece = null
 
         }
-        this.board[rowTo][colTo].chessPiece = this.board[rowFrom][colFrom].chessPiece
+        if (promoteTo != null) {
+            let promotionPiece = null
+            switch (promoteTo) {
+                case "bishop": {
+                    promotionPiece = new Bishop(rowFrom, colFrom, movingPiece?.color, true)
+                    break;
+                }
+                case "knight": {
+                    promotionPiece = new Knight(rowFrom, colFrom, movingPiece?.color, true)
+                    break;
+                }
+                case "rook": {
+                    promotionPiece = new Rook(rowFrom, colFrom, movingPiece?.color, true)
+                    break;
+                }
+                default: {
+                    promotionPiece = new Queen(rowFrom, colFrom, movingPiece?.color, true)
+                }
+            }
 
+            this.board[rowTo][colTo].chessPiece = promotionPiece
+
+        } else {
+            this.board[rowTo][colTo].chessPiece = movingPiece
+        }
         if (this.board[rowTo][colTo].chessPiece != null) {
+            this.board[rowTo][colTo].chessPiece.hasMoved = true
+            //make sure piece is tracking its new position
+
             this.board[rowTo][colTo].chessPiece.row = rowTo
             this.board[rowTo][colTo].chessPiece.col = colTo
+
+            //if it is castling
+            if (movingPiece?.type == "king") {
+                //if king side castles
+                if (colFrom == 4 && colTo == this.board[0].length - 2) {
+                    this.movePiece(rowFrom, this.board[0].length - 1, rowFrom, colTo - 1)
+                }
+                //if queen side castles
+                if (colFrom == 4 && colTo == 2) {
+                    this.movePiece(rowFrom, 0, rowFrom, colTo + 1)
+                }
+            }
         }
+
+        //if it castles 
 
         //handle promotion if it is a pawn and reaches the end we promote to some 
         //other piece
@@ -373,7 +445,10 @@ export class ChessBoardModel {
 
     }
 
-    static getNotation(board: ChessBoardModel, movedPiece: (Pawn | Rook | King | Queen | Knight | Bishop | null), from: number[], to: number[], hasCaptured: boolean) {
+    static getNotation(board: ChessBoardModel, movedPiece: (Pawn | Rook | King | Queen | Knight | Bishop | null), from: number[], to: number[], hasCaptured: boolean, promoteTo: "knight" | "bishop" | "rook" | "queen" | null = null) {
+
+        //deal with castle notation
+
         let notation = ""
         //get abbreviation for piece
         switch (movedPiece?.type) {
@@ -414,6 +489,13 @@ export class ChessBoardModel {
             }
 
             case "king": {
+                //king side castling
+                if (from[1] == 4 && to[1] == board.board[0].length - 2) {
+                    return "0-0"
+                }
+                if (from[1] == 4 && to[1] == 2) {
+                    return "0-0-0"
+                }
                 notation += "K"
                 let others = King.withinCaptureReach(board, to[0], to[1], null, movedPiece?.color)
                 notation += this.getRowColNotationAppendice(others, from[0], from[1])
@@ -432,10 +514,33 @@ export class ChessBoardModel {
             notation += "x"
         }
 
+
+
         console.log("Piece row, col" + `${to[0]}, ${to[1]}`)
         notation += String.fromCharCode('a'.charCodeAt(0) + to[1])
         notation += 8 - to[0]
+        if (promoteTo != null && movedPiece?.type == "pawn") {
+            let promoteTypePrefix = ""
+            switch (promoteTo) {
+                case "knight": {
+                    promoteTypePrefix = "N"
+                    break;
+                }
+                case "bishop": {
+                    promoteTypePrefix = "B"
+                    break;
+                }
+                case "rook": {
+                    promoteTypePrefix = "R"
+                    break;
+                }
+                default: {
+                    promoteTypePrefix = "Q"
+                }
 
+            }
+            notation += `=${promoteTypePrefix}`
+        }
         return notation
     }
 
@@ -473,6 +578,39 @@ export class ChessBoardModel {
 
         return result;
     }
+
+    static getRowColFromString(move: string): number[] {
+        let col = move.charAt(0)
+        let row = move.charAt(1)
+
+
+        let colNumber = this.getColFromString(col)
+        let rowNumber = this.getRowFromString(row)
+
+
+        return [rowNumber, colNumber]
+    }
+
+    static getRowFromString(row: string) {
+        return 8 - parseInt(row)
+    }
+
+    static getColFromString(col: string) {
+        return 0 - 'a'.charCodeAt(0) + col.charCodeAt(0)
+    }
+
+    static indiceToMoveString(index: number[]) {
+        const row = index[0]
+        const col = index[1]
+
+        const rank = 8 - row
+        const colString = String.fromCharCode('a'.charCodeAt(0) + col)
+
+        return `${colString}${rank}`
+    }
+
+
+
 
 }
 
@@ -512,6 +650,8 @@ export class ChessPiece {
     getMovementNotation() {
 
     }
+
+
 
 }
 export class Pawn extends ChessPiece {
@@ -626,6 +766,26 @@ export class Pawn extends ChessPiece {
         return newPawn;
     }
 
+    static withinCaptureReach(board: ChessBoardModel, row: number, col: number, proxyType: string | null, color: string) {
+        let whitePawnCaptures = [[1, -1], [1, 1]]
+        let blackPawnCaptures = [[-1, -1], [-1, 1]]
+        let ans: number[][] = []
+        let usedCapturedArr = color == 'white' ? whitePawnCaptures : blackPawnCaptures
+
+        for (let i = 0; i < usedCapturedArr.length; i++) {
+            let rowMov = usedCapturedArr[i][0]
+            let colMov = usedCapturedArr[i][1]
+
+            if (ChessBoardModel.checkIfIsInBounds(rowMov + row, colMov + col) && board.board[row + rowMov][col + colMov].chessPiece != null && board.board[row + rowMov][col + colMov].chessPiece?.type == 'pawn' && board.board[row + rowMov][col + colMov].chessPiece?.color == color) {
+                ans.push([rowMov + row, colMov + col])
+            }
+        }
+
+
+        return ans;
+
+    }
+
 
 }
 
@@ -677,7 +837,9 @@ export class Bishop extends ChessPiece {
                 break;
             }
             this.movementArr.push([tempRow, tempCol]);
-
+            if (board.board[tempRow][tempCol].chessPiece != null) {
+                break;
+            }
 
             tempRow++;
             tempCol--;
@@ -1149,12 +1311,54 @@ export class King extends ChessPiece {
                 this.movementArr.push([rowAdjusted, colAdjusted])
             }
         }
+
+
+        if (!this.hasMoved) {
+            //check castling
+            let canQueenSideCastle = true
+            let canKingSideCastle = true
+
+            //look in both horizontal directions
+
+            //check queenside castling
+            let pieceAtLeft = chessBoard[this.row][0].chessPiece
+
+            if (pieceAtLeft?.type == 'rook' && pieceAtLeft?.hasMoved == false && pieceAtLeft?.color == this.color) {
+                for (let i = this.col - 1; i >= 1; i--) {
+                    let squareAttacked = i == 1 ? false : (this.color == 'white' ? chessBoard[this.row][i].isSquareAttackedByBlack : chessBoard[this.row][i].isSquareAttackedByWhite)
+                    if (chessBoard[this.row][i]?.chessPiece != null || squareAttacked) {
+                        canQueenSideCastle = false
+                    }
+                }
+            }
+
+            //check king side castling
+            let pieceAtRight = chessBoard[this.row][chessBoard[0].length - 1].chessPiece
+
+            if (pieceAtRight?.type == 'rook' && pieceAtRight?.hasMoved == false && pieceAtRight?.color == this.color) {
+                for (let i = this.col + 1; i < chessBoard[0].length - 1; i++) {
+                    let squareAttacked = this.color == 'white' ? chessBoard[this.row][i].isSquareAttackedByBlack : chessBoard[this.row][i].isSquareAttackedByWhite
+                    if (chessBoard[this.row][i]?.chessPiece != null || squareAttacked) {
+                        canKingSideCastle = false
+                    }
+                }
+            }
+
+            //add queen side castle moves to movement arr
+            if (canQueenSideCastle) {
+                this.movementArr.push([this.row, 2])
+            }
+            //add king side castle moves to movement arr
+            if (canKingSideCastle) {
+                this.movementArr.push([this.row, chessBoard[0].length - 2])
+            }
+        }
+
     }
 
     copy() {
         return new King(this.row, this.col, this.color, this.hasMoved)
     }
-    //function to check if a knight can reach a certain square
     static withinCaptureReach(board: ChessBoardModel, row: number, col: number, proxyType: string | null, color: string) {
         return []
     }

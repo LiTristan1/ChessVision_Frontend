@@ -19,6 +19,54 @@ export function Square(
     { row, col, backgroundColor, chessPiece, isPossibleMove, board, position, setCurrentPosition, chessGame, isInCheck, setMoves }: Props
 ) {
 
+    function handleMovementProcedure(promoting: boolean = false) {
+        let copy = new ChessBoardModel()
+        copy.initBoard()
+        ChessBoardModel.copyModel(board, copy)
+        console.log("Going past condition")
+
+        //promotion already handled after movement
+        copy.board[row][col].isPromoting = false
+
+        //check is something is captured for the notation function
+        let isCapturing = (copy.board[row][col].chessPiece != null)
+
+        let notatedMove = ChessBoardModel.getNotation(copy, copy.board[copy.movingPiece[0]][copy.movingPiece[1]].chessPiece, [copy.movingPiece[0], copy.movingPiece[1]], [row, col], isCapturing, promoting ? board.promotingPiece : null)
+
+        copy.movePiece(copy.movingPiece[0], copy.movingPiece[1], row, col, promoting ? board.promotingPiece : null)
+
+        if (copy.board[row][col].chessPiece != null) {
+            copy.board[row][col].chessPiece.hasMoved = true
+        }
+        copy.whosMove = copy.whosMove == 'white' ? 'black' : 'white'
+        copy.clearPossibleMoves()
+
+        //this is the previously moved piece square
+        copy.previouslyMovedPieceSquare = [row, col]
+
+        copy.recomputeAttackedSquares()
+        //also make a new position
+        let newPosition = new Position(copy, [], position)
+        position.next?.push(newPosition)
+
+
+        console.log("Move Index: ", chessGame.moveIndex)
+        if (chessGame.moveIndex >= 0 && chessGame.moves[chessGame.moveIndex].length < 2) {
+
+            console.log("Adding new move to same index")
+            chessGame.moves[chessGame.moveIndex].push(notatedMove)
+        } else {
+            chessGame.moveIndex = chessGame.moveIndex + 1
+            chessGame.moves.push([notatedMove])
+        }
+
+        setMoves([...chessGame.moves])
+        newPosition.prev = position
+        newPosition.moveIndex = chessGame.moveIndex
+        setCurrentPosition(newPosition)
+
+    }
+
     let fontAwesomePieceName: ComponentProps<typeof FontAwesome6>["name"] = "chess-pawn"
 
     switch (chessPiece?.type) {
@@ -53,18 +101,19 @@ export function Square(
     }
     return (
         <Pressable
-            className="w-[12.5%] aspect-square flex justify-center items-center"
+            className="w-[12.5%] aspect-square flex justify-center items-center overflow-visible"
             style={{
                 backgroundColor:
                     isInCheck && chessPiece?.type === "king"
                         ? "red"
-                        : backgroundColor
+                        : backgroundColor,
+                zIndex: board.board[row][col].isPromoting ? 100 : 1,
             }}
             onPress={() => {
                 //clear all moves
                 board.clearPossibleMoves()
                 if (!isPossibleMove) {
-                    board.isPromoting = false
+                    board.board[row][col].isPromoting = false
                     if (chessPiece != null && board.whosMove == chessPiece.color) {
                         if (board.isChecking && chessPiece.type != 'king') {
                             return;
@@ -92,49 +141,15 @@ export function Square(
                     let copy = new ChessBoardModel()
                     copy.initBoard()
                     ChessBoardModel.copyModel(board, copy)
+
                     let promotionRow = copy.board[copy.movingPiece[0]][copy.movingPiece[1]].chessPiece?.color == 'white' ? ChessSquareModel.whitePromotionRow : ChessSquareModel.blackPromotionRow
                     if (copy.board[copy.movingPiece[0]][copy.movingPiece[1]].chessPiece?.type == 'pawn' && row == promotionRow) {
+                        console.log("Still inside condition")
                         copy.board[row][col].isPromoting = true
                         setCurrentPosition(new Position(copy, position.next, position.prev))
                         return
                     }
-
-                    //check is something is captured for the notation function
-                    let isCapturing = (copy.board[row][col].chessPiece != null)
-
-                    let notatedMove = ChessBoardModel.getNotation(copy, copy.board[copy.movingPiece[0]][copy.movingPiece[1]].chessPiece, [copy.movingPiece[0], copy.movingPiece[1]], [row, col], isCapturing)
-
-                    copy.movePiece(copy.movingPiece[0], copy.movingPiece[1], row, col)
-
-                    if (copy.board[row][col].chessPiece != null) {
-                        copy.board[row][col].chessPiece.hasMoved = true
-                    }
-                    copy.whosMove = copy.whosMove == 'white' ? 'black' : 'white'
-                    copy.clearPossibleMoves()
-
-                    //this is the previously moved piece square
-                    copy.previouslyMovedPieceSquare = [row, col]
-
-                    copy.recomputeAttackedSquares()
-                    //also make a new position
-                    let newPosition = new Position(copy, [], position)
-                    position.next?.push(newPosition)
-
-
-                    console.log("Move Index: ", chessGame.moveIndex)
-                    if (chessGame.moveIndex >= 0 && chessGame.moves[chessGame.moveIndex].length < 2) {
-
-                        console.log("Adding new move to same index")
-                        chessGame.moves[chessGame.moveIndex].push(notatedMove)
-                    } else {
-                        chessGame.moveIndex = chessGame.moveIndex + 1
-                        chessGame.moves.push([notatedMove])
-                    }
-
-                    setMoves([...chessGame.moves])
-                    newPosition.prev = position
-
-                    setCurrentPosition(newPosition)
+                    handleMovementProcedure()
 
                 }
 
@@ -160,78 +175,97 @@ export function Square(
             }
 
             {
-                board.board[row][col].isPromoting &&
-                <View
-                    className="
-            absolute
-            z-50
-            w-full
-            rounded-md
-            overflow-hidden
-            bg-[#E8E8E8]
-        "
-                    style={{
-                        top: 0,
-                    }}
-                >
-                    <Pressable
-                        className="w-full aspect-square items-center justify-center bg-[#F0F0F0] active:bg-[#D0D0D0]"
-                        onPress={() => {
-                            // Queen promotion
-                        }}
+                board.board[row][col].isPromoting && (
+                    <View
+                        className="absolute w-full z-50"
+                        style={
+                            row === ChessSquareModel.whitePromotionRow
+                                ? {
+                                    // Queen overlaps promotion square,
+                                    // remaining pieces extend upward
+                                    bottom: 0,
+                                    flexDirection: "column-reverse",
+                                }
+                                : {
+                                    // Queen overlaps promotion square,
+                                    // remaining pieces extend downward
+                                    top: 0,
+                                }
+                        }
                     >
-                        <FontAwesome6
-                            name="chess-queen"
-                            size={30}
-                            iconStyle="solid"
-                            color={board.whosMove}
-                        />
-                    </Pressable>
+                        <Pressable
+                            className="w-full aspect-square items-center justify-center bg-[#F0F0F0]"
+                            onPress={() => {
+                                console.log("Promoting to queen")
+                                board.promotingPiece = "queen"
+                                board.board[row][col].isPromoting = false
+                                handleMovementProcedure(true)
+                            }}
+                        >
+                            <FontAwesome6
+                                name="chess-queen"
+                                size={30}
+                                iconStyle="solid"
+                                color={board.whosMove}
+                            />
+                        </Pressable>
 
-                    <Pressable
-                        className="w-full aspect-square items-center justify-center bg-[#E0E0E0] active:bg-[#C8C8C8]"
-                        onPress={() => {
-                            // Knight promotion
-                        }}
-                    >
-                        <FontAwesome6
-                            name="chess-knight"
-                            size={30}
-                            iconStyle="solid"
-                            color={board.whosMove}
-                        />
-                    </Pressable>
+                        <Pressable
+                            className="w-full aspect-square items-center justify-center bg-[#E0E0E0]"
+                            onPress={() => {
+                                console.log("Promoting to knight")
+                                board.promotingPiece = "knight"
+                                board.board[row][col].isPromoting = false
+                                handleMovementProcedure(true)
+                            }}
+                        >
+                            <FontAwesome6
+                                name="chess-knight"
+                                size={30}
+                                iconStyle="solid"
+                                color={board.whosMove}
+                            />
+                        </Pressable>
 
-                    <Pressable
-                        className="w-full aspect-square items-center justify-center bg-[#F0F0F0] active:bg-[#D0D0D0]"
-                        onPress={() => {
-                            // Rook promotion
-                        }}
-                    >
-                        <FontAwesome6
-                            name="chess-rook"
-                            size={30}
-                            iconStyle="solid"
-                            color={board.whosMove}
-                        />
-                    </Pressable>
+                        <Pressable
+                            className="w-full aspect-square items-center justify-center bg-[#F0F0F0]"
+                            onPress={() => {
+                                console.log("Promoting to rook")
+                                board.promotingPiece = "rook"
+                                board.board[row][col].isPromoting = false
+                                handleMovementProcedure(true)
+                            }}
+                        >
+                            <FontAwesome6
+                                name="chess-rook"
+                                size={30}
+                                iconStyle="solid"
+                                color={board.whosMove}
+                            />
+                        </Pressable>
 
-                    <Pressable
-                        className="w-full aspect-square items-center justify-center bg-[#E0E0E0] active:bg-[#C8C8C8]"
-                        onPress={() => {
-                            // Bishop promotion
-                        }}
-                    >
-                        <FontAwesome6
-                            name="chess-bishop"
-                            size={30}
-                            iconStyle="solid"
-                            color={board.whosMove}
-                        />
-                    </Pressable>
-                </View>
+                        <Pressable
+                            className="w-full aspect-square items-center justify-center bg-[#E0E0E0]"
+                            onPress={() => {
+                                console.log("Promoting to bishop")
+                                board.promotingPiece = "bishop"
+                                board.board[row][col].isPromoting = false
+                                handleMovementProcedure(true)
+
+                            }}
+                        >
+                            <FontAwesome6
+                                name="chess-bishop"
+                                size={30}
+                                iconStyle="solid"
+                                color={board.whosMove}
+                            />
+                        </Pressable>
+                    </View>
+                )
             }
 
         </Pressable>
     )
 }
+

@@ -1,0 +1,139 @@
+import { ChessGame, Position } from "../models/pieces";
+import { getValueFor, save } from "../services/secureStore";
+import { FullAnalysisInputType, type Game } from "../types/responses";
+export async function getUserGames(year: number = new Date().getFullYear()) {
+    console.log("========== GET USER GAMES START ==========");
+
+    const accessToken = await getValueFor("Access-Token");
+    const refreshToken = await getValueFor("Refresh-Token");
+
+    console.log("ACCESS EXISTS:", !!accessToken);
+    console.log("REFRESH EXISTS:", !!refreshToken);
+
+    const url =
+        `${process.env.EXPO_PUBLIC_REST_BASE_URL}/games/${year}`;
+
+    console.log("REQUEST URL:", url);
+
+    const response = await fetch(url, {
+        method: "GET",
+        headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "X-Refresh-Token": refreshToken ?? ""
+        }
+    });
+    if (!response.ok) {
+        const error = await response.text();
+        console.log("Games request failed:", error);
+        return null;
+
+    }
+
+    await save("Access-Token", response.headers.get("X-Access-Token"))
+    await save("Refresh-Token", response.headers.get("X-Refresh-Token"))
+
+
+    //parse it back to json
+    const games: Game[][] = await response.json();
+    console.log("MONTHS RECEIVED:", games.length);
+
+    return games;
+
+
+}
+
+
+export type PositionAnalysis = {
+    moveIndex: number;
+    gameString: string;
+    position: any;
+    masterGames: any[];
+};
+
+export async function getFullGameAnalysis(
+    game: ChessGame
+): Promise<PositionAnalysis[]> {
+
+    const accessToken = await getValueFor("Access-Token");
+    const refreshToken = await getValueFor("Refresh-Token");
+
+    const moves = game.moves.flat();
+
+    let currentPosition = game.positions?.next[0] ?? null;
+
+    // Build ALL inputs before calling backend
+    const inputs: FullAnalysisInputType[] = [];
+
+    // Keep positions locally because the backend doesn't need
+    // your full Position objects
+    const positions: Position[] = [];
+    const YEARS_BACK = 10
+
+    const until = new Date().getFullYear()
+    const since = until - YEARS_BACK
+    for (let i = 0; i < moves.length && currentPosition; i++) {
+
+        const gameString = moves
+            .slice(0, i + 1)
+            .join(" ");
+
+        inputs.push({
+            gameString: gameString,
+            since: since,
+            until: until,
+            play: moves[i],
+            moves: 10
+        });
+
+        positions.push(currentPosition);
+
+        currentPosition = currentPosition.next[0] ?? null;
+    }
+
+    console.log("Values as input: " + inputs)
+
+    try {
+        const response = await fetch(
+            `${process.env.EXPO_PUBLIC_REST_BASE_URL}/games/fullAnalysis`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${accessToken}`,
+                    "X-Refresh-Token": refreshToken ?? ""
+                },
+                body: JSON.stringify(inputs)
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `Failed to analyze game: ${response.status}`
+            );
+        }
+
+        const data = await response.json();
+
+        const analysis: PositionAnalysis[] = inputs.map(
+            (input, index) => ({
+                moveIndex: index,
+                gameString: input.gameString,
+                position: positions[index],
+
+                masterGames: data.message[index].masterGames,
+                timeStats: data.message[index].timeStats,
+                otbStats: data.message[index].otbStats
+            })
+        );
+
+        return analysis;
+
+    } catch (error) {
+        console.error(
+            "Error analyzing full game:",
+            error
+        );
+
+        return [];
+    }
+}

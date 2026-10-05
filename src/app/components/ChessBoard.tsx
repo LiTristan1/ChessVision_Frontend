@@ -1,7 +1,7 @@
 import { FontAwesome6 } from "@react-native-vector-icons/fontawesome6";
 import { Pressable, View } from "react-native";
+import { colors } from "../../../themes/themes";
 import { ChessGame, Position } from '../models/pieces';
-import { colors } from "../themes/themes";
 import { Square } from "./Square";
 
 type Props = {
@@ -70,32 +70,8 @@ export function ChessBoard(
                     onPress={() => {
                         console.log("Previous Pressed")
                         // go to previous position
-
                         if (currentPosition.prev != null) {
-
-                            console.log(
-                                "Same Position:",
-                                currentPosition === currentPosition.prev
-                            )
-
-                            console.log(
-                                "Same ChessBoardModel:",
-                                currentPosition.position === currentPosition.prev.position
-                            )
-
-                            console.log(
-                                "Current board:",
-                                currentPosition.position?.board
-                            )
-
-                            console.log(
-                                "Previous board:",
-                                currentPosition.prev.position?.board
-                            )
-
-                            setCurrentPosition(currentPosition.prev)
-                        }
-                        if (currentPosition.prev != null) {
+                            chessGame.moveIndex = chessGame.moveIndex - 1
                             console.log(`Is same as current ${currentPosition == currentPosition.prev}`)
                             setCurrentPosition(currentPosition.prev)
                         }

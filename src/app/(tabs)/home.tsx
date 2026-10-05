@@ -1,11 +1,11 @@
 import { verifyInstallation } from "nativewind";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { containers, TextStyles } from "../../../themes/themes";
 import { ActionBox } from "../components/ActionBox";
 import { AppTitle } from "../components/appTitle";
 import { SearchBar } from "../components/SearchBar";
 import { Slide } from "../components/Slide";
-import { containers, TextStyles } from "../themes/themes";
 export default function Index() {
   verifyInstallation()
   return (

@@ -1,10 +1,16 @@
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6";
 import { Image } from "expo-image";
+import { useRouter } from 'expo-router';
 import { cssInterop } from "nativewind";
 import { useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { createNewUser, login } from "./api/auth";
+import { getUserGames } from "./api/games";
 import { AppTitle } from "./components/appTitle";
+import { useAppDispatch } from "./hooks/reduxHooks";
+import { setGamesByYear } from "./Store/slices/GamesSlices";
+import { type gamesByYear } from './types/responses';
 cssInterop(Image, {
     className: "style",
 });
@@ -14,7 +20,8 @@ export default function Login() {
     const [username, setUsername] = useState<string>("")
     const [password, setPassword] = useState<string>("")
     const [chessComUsername, setChessComUsername] = useState<string>("")
-
+    const router = useRouter()
+    const dispatch = useAppDispatch()
     return (
         <SafeAreaView
             className='flex-1 w-full h-full bg-red-500 items-center'
@@ -89,6 +96,18 @@ export default function Login() {
                             />
                             <Pressable
                                 className='w-full h-[50px] bg-[#4D7CFE] rounded-xl justify-center items-center mt-5 mb-2'
+                                onPress={async () => {
+                                    console.log("Clicked on press")
+                                    //make sure all fields are filled in
+                                    if (username != "" && password != "" && chessComUsername != "") {
+                                        console.log("Inside condition")
+                                        const status = await createNewUser(username, password, chessComUsername)
+
+                                        if (status == 200) {
+                                            router.navigate('/home')
+                                        }
+                                    }
+                                }}
                             >
                                 <Text className='text-white font-bold text-base'>
                                     Sign Up
@@ -96,7 +115,9 @@ export default function Login() {
                             </Pressable>
                             <Pressable
                                 className='w-full h-[50px] border border-[#4D7CFE] rounded-xl justify-center items-center'
-                                onPress={() => { setIsRegistering(false) }}
+                                onPress={() => {
+                                    setIsRegistering(false)
+                                }}
                             >
                                 <Text className='text-[#4D7CFE] font-semibold text-base'>
                                     Login
@@ -110,6 +131,25 @@ export default function Login() {
                         !isRegistering && <View>
                             <Pressable
                                 className='w-full h-[50px] bg-[#4D7CFE] rounded-xl justify-center items-center mt-2'
+                                onPress={async () => {
+                                    console.log("Clicked login button")
+                                    const status = await login(username, password)
+                                    if (status == 200) {
+                                        //set global states
+                                        const response = await getUserGames()
+
+                                        const gamesByYearObj: gamesByYear = {
+                                            year: new Date().getFullYear(),
+                                            games: response
+                                        }
+                                        //console.log("BEFORE DISPATCH:", store.getState());
+
+                                        dispatch(setGamesByYear(gamesByYearObj))
+                                        //console.log("AFTER DISPATCH:", store.getState());
+
+                                        router.navigate('/(tabs)/home')
+                                    }
+                                }}
                             >
                                 <Text className='text-white font-bold text-base'>
                                     Login
