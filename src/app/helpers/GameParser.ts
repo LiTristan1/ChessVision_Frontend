@@ -8,9 +8,12 @@ import {
     Queen,
     Rook
 } from "../models/pieces";
+import { UCIMove } from "../types/responses";
 export function GameParser(pgn: string): ChessGame {
 
+
     // 1. Create initial chess board
+
     const board = new ChessBoardModel();
     board.initBoard();
 
@@ -20,9 +23,12 @@ export function GameParser(pgn: string): ChessGame {
         [],
         null
     );
+    initialPosition.move = null
 
     // 3. Create new game
     const chessGame = new ChessGame(initialPosition);
+
+
     // 4. Extract moves from PGN
     const moves: string[] = pgn
         .replace(/\[[^\]]*\]/g, "")            // headers
@@ -78,7 +84,9 @@ export function parseMove(
     const whosMove = board.whosMove;
 
     // Remove check/checkmate
-    const cleanMove = move.replace(/[+#]$/, "");
+    const cleanMove = move
+        .replace(/[+#]$/, "")
+        .replace(/=[NBRQ]$/, "");;
 
 
     const pieceType = cleanMove.charAt(0);
@@ -89,10 +97,16 @@ export function parseMove(
 
     ChessBoardModel.copyModel(board, copy);
 
-    // =====================================
-    // CASTLING
-    // =====================================
 
+    let uciPromotion: "" | "n" | "b" | "q" | "r" = "";
+
+    const promotionMatch = move.match(/=([NBRQ])/);
+
+    if (promotionMatch) {
+        uciPromotion =
+            promotionMatch[1].toLowerCase() as "" | "n" | "b" | "q" | "r";
+    }
+    //Castling starts here/***************************************** */
     if (
         cleanMove === "O-O" ||
         cleanMove === "0-0"
@@ -168,17 +182,7 @@ export function parseMove(
             if (candidate === null) {
                 return null;
             }
-            let uciPromotion: string = "";
-            let indexOfEquals = move.indexOf('=')
-            if (indexOfEquals != -1) {
-                uciPromotion = move.charAt(indexOfEquals + 1)
-            }
 
-            position.move = {
-                from: ChessBoardModel.indiceToMoveString(candidate),
-                to: destinationString,
-                promotion: uciPromotion as NonNullable<Position["move"]>["promotion"]
-            }
 
             return handleMovementProcedure(
                 candidate[0],
@@ -188,7 +192,7 @@ export function parseMove(
                 copy,
                 position,
                 chessGame,
-                move
+                move,
             );
         }
 
@@ -210,17 +214,9 @@ export function parseMove(
                 return null;
             }
 
-            let uciPromotion: string = "";
-            let indexOfEquals = move.indexOf('=')
-            if (indexOfEquals != -1) {
-                uciPromotion = move.charAt(indexOfEquals + 1)
-            }
 
-            position.move = {
-                from: ChessBoardModel.indiceToMoveString(candidate),
-                to: destinationString,
-                promotion: uciPromotion as NonNullable<Position["move"]>["promotion"]
-            }
+
+
 
             return handleMovementProcedure(
                 candidate[0],
@@ -252,17 +248,8 @@ export function parseMove(
                 return null;
             }
 
-            let uciPromotion: string = "";
-            let indexOfEquals = move.indexOf('=')
-            if (indexOfEquals != -1) {
-                uciPromotion = move.charAt(indexOfEquals + 1)
-            }
 
-            position.move = {
-                from: ChessBoardModel.indiceToMoveString(candidate),
-                to: destinationString,
-                promotion: uciPromotion as NonNullable<Position["move"]>["promotion"]
-            }
+
 
             return handleMovementProcedure(
                 candidate[0],
@@ -294,17 +281,8 @@ export function parseMove(
                 return null;
             }
 
-            let uciPromotion: string = "";
-            let indexOfEquals = move.indexOf('=')
-            if (indexOfEquals != -1) {
-                uciPromotion = move.charAt(indexOfEquals + 1)
-            }
 
-            position.move = {
-                from: ChessBoardModel.indiceToMoveString(candidate),
-                to: destinationString,
-                promotion: uciPromotion as NonNullable<Position["move"]>["promotion"]
-            }
+
 
             return handleMovementProcedure(
                 candidate[0],
@@ -336,17 +314,9 @@ export function parseMove(
                 return null;
             }
 
-            let uciPromotion: string = "";
-            let indexOfEquals = move.indexOf('=')
-            if (indexOfEquals != -1) {
-                uciPromotion = move.charAt(indexOfEquals + 1)
-            }
 
-            position.move = {
-                from: ChessBoardModel.indiceToMoveString(candidate),
-                to: destinationString,
-                promotion: uciPromotion as NonNullable<Position["move"]>["promotion"]
-            }
+
+
 
             return handleMovementProcedure(
                 candidate[0],
@@ -397,17 +367,9 @@ export function parseMove(
                     return null;
                 }
 
-                let uciPromotion: string = "";
-                let indexOfEquals = move.indexOf('=')
-                if (indexOfEquals != -1) {
-                    uciPromotion = move.charAt(indexOfEquals + 1)
-                }
 
-                position.move = {
-                    from: ChessBoardModel.indiceToMoveString(candidate),
-                    to: destinationString,
-                    promotion: uciPromotion as NonNullable<Position["move"]>["promotion"]
-                }
+
+
 
                 return handleMovementProcedure(
                     candidate[0],
@@ -417,7 +379,8 @@ export function parseMove(
                     copy,
                     position,
                     chessGame,
-                    move
+                    move,
+                    uciPromotion as NonNullable<UCIMove['promotion']>
                 );
             }
 
@@ -466,7 +429,8 @@ export function parseMove(
                         copy,
                         position,
                         chessGame,
-                        move
+                        move,
+                        uciPromotion
                     );
                 }
             }
@@ -599,7 +563,8 @@ function handleMovementProcedure(
     copy: ChessBoardModel,
     position: Position,
     chessGame: ChessGame,
-    move: string
+    move: string,
+    promotionUci: "" | "n" | "b" | "q" | "r" = ""
 ): Position {
 
     copy.movePiece(
@@ -637,7 +602,11 @@ function handleMovementProcedure(
     position.next.push(newPosition);
 
     newPosition.prev = position;
-
+    newPosition.move = {
+        from: ChessBoardModel.indiceToUciMoveString([rowFrom, colFrom]),
+        to: ChessBoardModel.indiceToUciMoveString([rowTo, colTo]),
+        promotion: promotionUci
+    }
     if (
         chessGame.moveIndex >= 0 &&
         chessGame.moves[chessGame.moveIndex]?.length < 2

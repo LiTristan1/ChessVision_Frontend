@@ -41,6 +41,20 @@ export class ChessGame {
         return uciMoves;
     }
 
+    static movesToPgn(moves: string[]) {
+        let result: string = ""
+        for (let i = 0; i < moves.length; i += 2) {
+            result += `${i / 2 + 1}. ${moves[i]} `
+
+            if (i + 1 < moves.length) {
+                result += `${moves[i + 1]} `
+            }
+
+        }
+
+        return result;
+    }
+
 }
 //test
 export class Position {
@@ -599,7 +613,7 @@ export class ChessBoardModel {
         return 0 - 'a'.charCodeAt(0) + col.charCodeAt(0)
     }
 
-    static indiceToMoveString(index: number[]) {
+    static indiceToUciMoveString(index: number[]) {
         const row = index[0]
         const col = index[1]
 
@@ -608,6 +622,26 @@ export class ChessBoardModel {
 
         return `${colString}${rank}`
     }
+
+    static promotionUci(piece: "queen" | "knight" | "bishop" | "rook") {
+        switch (piece) {
+            case "knight": {
+                return 'n'
+            }
+            case "bishop": {
+                return 'b'
+            }
+            case "rook": {
+                return 'r'
+            }
+
+            default: {
+                return 'q'
+            }
+        }
+    }
+
+
 
 
 

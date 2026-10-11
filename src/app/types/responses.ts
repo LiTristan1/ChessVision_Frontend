@@ -1,11 +1,8 @@
 
-
 export type FullAnalysisResultType = {
     gameString: string;
     play: string;
-
-    masterGames: GameStats;
-    timeStats: GameStats | null;
+    masterGames: MasterGamePreview | null;
     otbStats: GameStats | null;
 };
 
@@ -22,7 +19,7 @@ export type GameType = {
     archives: string[]
 }
 
-type UCIMove = {
+export type UCIMove = {
     from: string;
     to: string;
     promotion: "q" | "r" | "b" | "n" | "";
@@ -154,4 +151,105 @@ export type LichessOpening = {
     name: string;
 };
 
+export type MasterGamePreview = {
+    id: number;
+    black_elo: number | null;
+    white_elo: number | null;
+    event: string | null;
+    white: string;
+    black: string;
 
+};
+export type PositionAnalysis = {
+    moveIndex: number;
+    gameString: string;
+    masterGames: MasterGamePreview[] | null;
+    otbStats: GameStats | null;
+};
+
+
+export type ChessComProfile = {
+    player_id: number;
+    "@id": string;
+    url: string;
+    username: string;
+    followers: number;
+    country: string;
+    last_online: number;
+    joined: number;
+    status: string;
+    is_streamer: boolean;
+    verified: boolean;
+    league?: string;
+    streaming_platforms?: unknown[];
+
+    avatar?: string;
+    name?: string;
+    title?: string;
+    location?: string;
+};
+
+export type ChessComRating = {
+    rating: number;
+    date: number;
+    rd: number;
+};
+
+export type ChessComBestRating = {
+    rating: number;
+    date: number;
+    game: string;
+};
+
+export type ChessComRecord = {
+    win: number;
+    loss: number;
+    draw: number;
+};
+
+export type ChessComModeStats = {
+    last: ChessComRating;
+    best: ChessComBestRating;
+    record: ChessComRecord;
+};
+
+export type ChessComDailyStats = {
+    last: ChessComRating;
+    best: ChessComBestRating;
+    record: ChessComRecord & {
+        time_per_move: number;
+        timeout_percent: number;
+    };
+};
+
+export type ChessComStats = {
+    chess_daily?: ChessComDailyStats;
+    chess_rapid?: ChessComModeStats;
+    chess_bullet?: ChessComModeStats;
+    chess_blitz?: ChessComModeStats;
+
+    fide?: number;
+
+    tactics?: {
+        highest: {
+            rating: number;
+            date: number;
+        };
+        lowest: {
+            rating: number;
+            date: number;
+        };
+    };
+
+    puzzle_rush?: {
+        best: {
+            total_attempts: number;
+            score: number;
+        };
+    };
+};
+
+export type FullProfileResponse = {
+    profile: ChessComProfile,
+    stats: ChessComStats
+}

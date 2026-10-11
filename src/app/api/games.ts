@@ -46,8 +46,8 @@ export async function getUserGames(year: number = new Date().getFullYear()) {
 export type PositionAnalysis = {
     moveIndex: number;
     gameString: string;
-    position: any;
-    masterGames: any[];
+    masterGames: MasterGamePreview[] | null;
+    otbStats: GameStats | null;
 };
 
 export async function getFullGameAnalysis(
@@ -69,19 +69,31 @@ export async function getFullGameAnalysis(
     const positions: Position[] = [];
     const YEARS_BACK = 10
 
-    const until = new Date().getFullYear()
-    const since = until - YEARS_BACK
+    const until = new Date().getFullYear();
+    const since = until - YEARS_BACK;
+
+    const uciMoves: string[] = [];
+
     for (let i = 0; i < moves.length && currentPosition; i++) {
 
-        const gameString = moves
-            .slice(0, i + 1)
-            .join(" ");
+        const gameString = ChessGame.movesToPgn(moves
+            .slice(0, i + 1));
+
+        //console.log("Used game string " + gameString)
+
+        if (currentPosition.move) {
+            uciMoves.push(
+                currentPosition.move.from +
+                currentPosition.move.to +
+                (currentPosition.move.promotion ?? "")
+            );
+        }
 
         inputs.push({
-            gameString: gameString,
-            since: since,
-            until: until,
-            play: moves[i],
+            gameString,
+            since,
+            until,
+            play: uciMoves.join(","),
             moves: 10
         });
 
@@ -90,7 +102,7 @@ export async function getFullGameAnalysis(
         currentPosition = currentPosition.next[0] ?? null;
     }
 
-    console.log("Values as input: " + inputs)
+    //console.log("Values as input: " + JSON.stringify(inputs))
 
     try {
         const response = await fetch(
@@ -106,6 +118,20 @@ export async function getFullGameAnalysis(
             }
         );
 
+
+
+        // Save refreshed tokens BEFORE checking response.ok
+        const newAccessToken = response.headers.get("X-Access-Token");
+        const newRefreshToken = response.headers.get("X-Refresh-Token");
+
+        if (newAccessToken) {
+            await save("Access-Token", newAccessToken);
+        }
+
+        if (newRefreshToken) {
+            await save("Refresh-Token", newRefreshToken);
+        }
+
         if (!response.ok) {
             throw new Error(
                 `Failed to analyze game: ${response.status}`
@@ -118,11 +144,8 @@ export async function getFullGameAnalysis(
             (input, index) => ({
                 moveIndex: index,
                 gameString: input.gameString,
-                position: positions[index],
-
-                masterGames: data.message[index].masterGames,
-                timeStats: data.message[index].timeStats,
-                otbStats: data.message[index].otbStats
+                masterGames: data[index]?.masterGames ?? [],
+                otbStats: data[index]?.otbStats ?? null
             })
         );
 

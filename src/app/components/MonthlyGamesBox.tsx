@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { useAppDispatch } from "../hooks/reduxHooks";
+import { useAppDispatch, } from "../hooks/reduxHooks";
 import { setCurrentGame } from '../Store/slices/GamesSlices';
 import type { Game } from "../types/responses";
 type Props = {
@@ -74,7 +74,11 @@ export function MonthlyGamesBox({
                         <Pressable
                             key={game.uuid ?? index}
                             className="px-4 py-3 border-t border-[#1E3042]"
-                            onPress={() => { dispatch(setCurrentGame(game)) }}
+                            onPress={async () => {
+                                console.log("Dispatching: " + game.uuid)
+                                dispatch(setCurrentGame(game))
+
+                            }}
                         >
                             <View className="flex-row justify-between items-center">
 

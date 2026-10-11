@@ -13,6 +13,7 @@ import {
 } from "../../../themes/themes";
 
 import { getFullGameAnalysis } from "../api/games";
+import AnalysisPanel from "../components/AnalysisPanel";
 import { ChessBoard } from "../components/ChessBoard";
 import { MovesGrid } from "../components/MovesGrid";
 import { GameParser } from "../helpers/GameParser";
@@ -22,17 +23,33 @@ import {
     ChessGame,
     Position
 } from "../models/pieces";
-import { setIsAnalyzing } from "../Store/slices/GamesSlices";
-
+import { setAnalysis, setIsAnalyzing } from "../Store/slices/GamesSlices";
 export default function Games() {
     const dispatch = useAppDispatch()
     const currGame = useAppSelector(
         state => state.games.currGame
     );
 
+
+
+    const analysis = useAppSelector(
+        state => state.games.analysis
+    )
+    const isAnalyzing = useAppSelector(
+        state => state.games.isAnalyzing
+    )
+
+    useEffect(() => {
+        if (analysis != null) {
+            console.log("Analysis Received: " + JSON.stringify(analysis))
+        }
+    }, [analysis])
+
+
     /*
      * Parse the PGN once when this screen is created.
      */
+
     const [chessGame, setChessGame] = useState<ChessGame>(() => {
 
         if (currGame?.pgn) {
@@ -49,29 +66,50 @@ export default function Games() {
             null
         );
 
+        let game = new ChessGame(position)
+        game.moveIndex = -1
         return new ChessGame(position);
     });
+
+    useEffect(() => {
+        if (!currGame?.pgn) return;
+
+        const parsedGame = GameParser(currGame.pgn);
+        if (parsedGame == null) {
+            return
+        }
+        setChessGame(parsedGame);
+        setCurrentPosition(parsedGame.positions!!);
+        setMoves(parsedGame.moves);
+
+    }, [currGame]);
 
     useEffect(() => {
 
         async function analyzeGame() {
             try {
+                dispatch(setIsAnalyzing(true))
                 const response = await getFullGameAnalysis(chessGame)
+                dispatch(setAnalysis(response))
+                dispatch(setIsAnalyzing(false))
+
+                console.log("Received game analysis: " + response)
             } catch (e) {
                 console.log("Error analyzing game: " + e)
             }
         }
-        dispatch(setIsAnalyzing(true))
+
 
         analyzeGame()
-        dispatch(setIsAnalyzing(false))
-    })
+
+    }, [chessGame])
 
     /*
      * Start at the initial position of the parsed game.
      *
      * Assuming chessGame.positions is your initial/root Position.
      */
+
 
     const dummyBoard = new ChessBoardModel
     dummyBoard.initBoard()
@@ -89,10 +127,7 @@ export default function Games() {
     const [selectedTab, setSelectedTab] =
         useState<"Moves" | "Analysis" | "Insights">("Moves");
 
-
-    console.log("Initialized moves:", moves);
-
-
+    const analysisMoveIndex = useAppSelector(state => state.games.analyzingMoveIndex)
     return (
         <ScrollView style={containers.PrimaryContainer}>
 
@@ -196,18 +231,28 @@ export default function Games() {
                     />
 
                 </View>
-
-
-                <View className="w-full min-h-[300px] bg-[#080B0F]">
-
-                    <MovesGrid
-                        game={chessGame}
-                        moves={moves}
-                        moveIndex={currentPosition.moveIndex}
-                        setCurrentPosition={setCurrentPosition}
+                {
+                    selectedTab == 'Analysis' &&
+                    <AnalysisPanel
+                        analysis={analysis}
+                        moveIndex={analysisMoveIndex}
+                        isAnalyzing={isAnalyzing}
                     />
+                }
 
-                </View>
+                {
+                    selectedTab == 'Moves' &&
+                    <View className="w-full min-h-[300px] bg-[#080B0F]">
+
+                        <MovesGrid
+                            game={chessGame}
+                            moves={moves}
+                            moveIndex={currentPosition.moveIndex}
+                            setCurrentPosition={setCurrentPosition}
+                        />
+
+                    </View>
+                }
 
             </SafeAreaView>
 

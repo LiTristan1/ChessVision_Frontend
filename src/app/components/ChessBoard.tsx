@@ -1,7 +1,9 @@
 import { FontAwesome6 } from "@react-native-vector-icons/fontawesome6";
 import { Pressable, View } from "react-native";
 import { colors } from "../../../themes/themes";
+import { useAppDispatch, useAppSelector } from "../hooks/reduxHooks";
 import { ChessGame, Position } from '../models/pieces';
+import { setCurrentAnalyzedMove } from "../Store/slices/GamesSlices";
 import { Square } from "./Square";
 
 type Props = {
@@ -13,7 +15,8 @@ type Props = {
 export function ChessBoard(
     { currentPosition, setCurrentPosition, chessGame, setMoves }: Props
 ) {
-
+    const dispatch = useAppDispatch()
+    const analyzingIndex = useAppSelector(state => state.games.analyzingMoveIndex)
     const chessBoardModel = currentPosition.position
     return (
         <View className="w-full">
@@ -74,6 +77,7 @@ export function ChessBoard(
                             chessGame.moveIndex = chessGame.moveIndex - 1
                             console.log(`Is same as current ${currentPosition == currentPosition.prev}`)
                             setCurrentPosition(currentPosition.prev)
+                            dispatch(setCurrentAnalyzedMove(analyzingIndex - 1))
                         }
                     }}
                 >
@@ -83,6 +87,7 @@ export function ChessBoard(
                         size={20}
                         color="white"
                         iconStyle="solid"
+
                     />
                 </Pressable>
                 <Pressable
@@ -90,9 +95,11 @@ export function ChessBoard(
                     onPress={() => {
                         console.log("Next pressed")
                         // go to next position
-                        if (currentPosition.next != null && currentPosition.next[0] != null) (
+                        if (currentPosition.next != null && currentPosition.next[0] != null) {
                             setCurrentPosition(currentPosition.next[0])
-                        )
+                            dispatch(setCurrentAnalyzedMove(analyzingIndex + 1))
+
+                        }
                     }
                     }
                 >
