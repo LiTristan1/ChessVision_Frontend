@@ -1,6 +1,7 @@
 import { ChessGame, Position } from "../models/pieces";
 import { getValueFor, save } from "../services/secureStore";
-import { FullAnalysisInputType, type Game } from "../types/responses";
+import { FullAnalysisInputType, PositionAnalysis, type Game, type MovesPGN, type Opening } from "../types/responses";
+
 export async function getUserGames(year: number = new Date().getFullYear()) {
     console.log("========== GET USER GAMES START ==========");
 
@@ -43,17 +44,12 @@ export async function getUserGames(year: number = new Date().getFullYear()) {
 }
 
 
-export type PositionAnalysis = {
-    moveIndex: number;
-    gameString: string;
-    masterGames: MasterGamePreview[] | null;
-    otbStats: GameStats | null;
-};
+
 
 export async function getFullGameAnalysis(
+   
     game: ChessGame
 ): Promise<PositionAnalysis[]> {
-
     const accessToken = await getValueFor("Access-Token");
     const refreshToken = await getValueFor("Refresh-Token");
 
@@ -90,6 +86,7 @@ export async function getFullGameAnalysis(
         }
 
         inputs.push({
+
             gameString,
             since,
             until,
@@ -142,6 +139,7 @@ export async function getFullGameAnalysis(
 
         const analysis: PositionAnalysis[] = inputs.map(
             (input, index) => ({
+                id: game.id,
                 moveIndex: index,
                 gameString: input.gameString,
                 masterGames: data[index]?.masterGames ?? [],
@@ -158,5 +156,106 @@ export async function getFullGameAnalysis(
         );
 
         return [];
+    }
+}
+
+export async function getStockFishEvaluation(position: Position, chessGame: ChessGame) {
+
+    const fen = ChessGame.getFenUpToPosition(position)
+
+    const url = `${process.env.EXPO_PUBLIC_STOCKFISH_BASE_URL}?fen=${encodeURIComponent(fen)}&depth=15`
+    console.log("Used stockfish url: " + url)
+    try {
+        const response = await fetch(url)
+        if (!response.ok) {
+            throw new Error(
+                `Stockfish HTTP error: ${response.status}`
+            );
+        }
+        const response_json = await response.json()
+        console.log("STOCKFISH RESPONSE: " + JSON.stringify(response_json))
+
+        return response_json
+    } catch (e) {
+        console.log("Error getting stockfish analysis: " + e)
+    }
+}
+
+export async function getOpeningDB() {
+    const url = `${process.env.EXPO_PUBLIC_REST_BASE_URL}/games/openings/variations`
+    console.log("Getting openings used url: " + url)
+    const accessToken = await getValueFor("Access-Token");
+    const refreshToken = await getValueFor("Refresh-Token");
+
+    try {
+        const response = await fetch(url, {
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${accessToken}`,
+                "X-Refresh-Token": refreshToken ?? ""
+            }
+        })
+        // Save refreshed tokens BEFORE checking response.ok
+        const newAccessToken = response.headers.get("X-Access-Token");
+        const newRefreshToken = response.headers.get("X-Refresh-Token");
+
+        if (newAccessToken) {
+            await save("Access-Token", newAccessToken);
+        }
+
+        if (newRefreshToken) {
+            await save("Refresh-Token", newRefreshToken);
+        }
+        if (!response.ok) {
+            throw new Error(
+                `Failed to get openings: ${response.status}`
+            );
+        }
+        const response_json: Opening[] = await response.json()
+        return response_json
+    } catch (e) {
+        console.log("Error fetching openings db: " + e)
+    }
+
+
+}
+
+export async function getGameById(id: string) {
+    const url = `${process.env.EXPO_PUBLIC_REST_BASE_URL}/games/game/${id}`
+    const accessToken = await getValueFor("Access-Token");
+    const refreshToken = await getValueFor("Refresh-Token");
+
+    try {
+        const response = await fetch(url, {
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${accessToken}`,
+                "X-Refresh-Token": refreshToken ?? ""
+            }
+        })
+        // Save refreshed tokens BEFORE checking response.ok
+        const newAccessToken = response.headers.get("X-Access-Token");
+        const newRefreshToken = response.headers.get("X-Refresh-Token");
+
+        if (newAccessToken) {
+            await save("Access-Token", newAccessToken);
+        }
+
+        if (newRefreshToken) {
+            await save("Refresh-Token", newRefreshToken);
+        }
+
+        if (!response.ok) {
+            throw new Error(
+                `Failed to get game by id for id ${id}: ${response.status}`
+            );
+        }
+        const response_json: MovesPGN = await response.json()
+
+        console.log("Received game by ID: " + JSON.stringify(response_json.moves))
+        return response_json.moves
+
+    } catch (e) {
+        console.log("Error getting game by id: " + e)
     }
 }

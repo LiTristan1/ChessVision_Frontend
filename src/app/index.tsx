@@ -1,180 +1,355 @@
-import FontAwesome6 from "@react-native-vector-icons/fontawesome6";
-import { Image } from "expo-image";
-import { useRouter } from 'expo-router';
-import { cssInterop } from "nativewind";
+
+import { FontAwesome6 } from "@react-native-vector-icons/fontawesome6";
+import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, Text, TextInput, View } from "react-native";
+import {
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    ScrollView,
+    Text,
+    TextInput,
+    View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
 import { createNewUser, login } from "./api/auth";
 import { getUserGames } from "./api/games";
-import { AppTitle } from "./components/appTitle";
+import { AnimatedChessBackground } from "./components/AnimatedChessBackground";
+import { ChessLoadingScreen } from "./components/ChessLoadingScreen";
 import { useAppDispatch } from "./hooks/reduxHooks";
 import { setGamesByYear } from "./Store/slices/GamesSlices";
-import { type gamesByYear } from './types/responses';
-cssInterop(Image, {
-    className: "style",
-});
+import { setChessVisionUserName } from "./Store/slices/PlayerSlice";
+import { type gamesByYear } from "./types/responses";
+
+type LoadingState =
+    | "idle"
+    | "loggingIn"
+    | "fetchingGames"
+    | "registering";
 
 export default function Login() {
-    const [isRegistering, setIsRegistering] = useState<Boolean>(false)
-    const [username, setUsername] = useState<string>("")
-    const [password, setPassword] = useState<string>("")
-    const [chessComUsername, setChessComUsername] = useState<string>("")
-    const router = useRouter()
-    const dispatch = useAppDispatch()
+    const router = useRouter();
+    const dispatch = useAppDispatch();
+
+    const [isRegistering, setIsRegistering] = useState(false);
+
+    const [username, setUsername] = useState("");
+    const [password, setPassword] = useState("");
+    const [chessComUsername, setChessComUsername] = useState("");
+
+    const [loadingState, setLoadingState] =
+        useState<LoadingState>("idle");
+
+    const [error, setError] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+
+    const isLoading = loadingState !== "idle";
+
+    async function handleLogin() {
+        if (isLoading) return;
+
+        if (!username.trim() || !password) {
+            setError("Please enter your username and password.");
+            return;
+        }
+
+        setError("");
+        setLoadingState("loggingIn");
+
+        try {
+            const status = await login(username.trim(), password);
+
+            if (status !== 200) {
+                setError("Login failed. Please check your credentials.");
+                return;
+            }
+
+            dispatch(setChessVisionUserName(username.trim()));
+
+            setLoadingState("fetchingGames");
+
+            const response = await getUserGames();
+
+            const gamesByYearObj: gamesByYear = {
+                year: new Date().getFullYear(),
+                games: response,
+            };
+
+            dispatch(setGamesByYear(gamesByYearObj));
+
+            router.replace("/(tabs)/home");
+        } catch (err) {
+            console.error("Login error:", err);
+            setError("Something went wrong. Please try again.");
+        } finally {
+            setLoadingState("idle");
+        }
+    }
+
+    async function handleRegister() {
+        if (isLoading) return;
+
+        if (
+            !username.trim() ||
+            !password ||
+            !chessComUsername.trim()
+        ) {
+            setError("Please fill in all fields.");
+            return;
+        }
+
+        setError("");
+        setLoadingState("registering");
+
+        try {
+            const status = await createNewUser(
+                username.trim(),
+                password,
+                chessComUsername.trim()
+            );
+
+            if (status === 200) {
+                // Preserves your existing registration destination.
+                router.navigate("/home");
+            } else {
+                setError("Unable to create account. Please try again.");
+            }
+        } catch (err) {
+            console.error("Registration error:", err);
+            setError("Something went wrong. Please try again.");
+        } finally {
+            setLoadingState("idle");
+        }
+    }
+
+    const loadingMessage =
+        loadingState === "loggingIn"
+            ? "Signing you in..."
+            : loadingState === "fetchingGames"
+                ? "Loading your games..."
+                : "Creating your account...";
+
     return (
         <SafeAreaView
-            className='flex-1 w-full h-full bg-red-500 items-center'
+            className="flex-1"
+            style={{ backgroundColor: "#061321" }}
         >
-            <Image
-                className='absolute inset-0 left-0 right-0 -top-16'
-                source={require('./public/assets/login_background.png')}
-                contentFit='cover'
-            />
+            <AnimatedChessBackground />
 
-            <View
-                className='w-full flex justify-center items-center gap-8 mt-2'
-            >
-                <FontAwesome6
-                    name="chess-knight"
-                    size={30}
-                    iconStyle="solid"
-                    color="#0EA5E9"
-                />
-                <AppTitle
-                    showOnlyTitle={false}
-                />
-            </View>
+            {isLoading ? (
+                <ChessLoadingScreen message={loadingMessage} />
+            ) : (
+                <KeyboardAvoidingView
+                    className="flex-1"
+                    behavior={Platform.OS === "ios" ? "padding" : undefined}
+                >
+                    <ScrollView
+                        className="flex-1"
+                        keyboardShouldPersistTaps="handled"
+                        contentContainerStyle={{
+                            flexGrow: 1,
+                            paddingHorizontal: 24,
+                            paddingTop: 48,
+                            paddingBottom: 32,
+                            justifyContent: "space-between",
+                        }}
+                    >
+                        {/* Branding */}
+                        <View className="items-center mt-8">
+                            <View
+                                className="w-20 h-20 rounded-3xl items-center justify-center mb-5"
+                                style={{
+                                    backgroundColor: "rgba(20, 76, 123, 0.3)",
+                                    borderWidth: 1,
+                                    borderColor: "#25547A",
+                                }}
+                            >
+                                <FontAwesome6
+                                    name="chess-knight"
+                                    iconStyle="solid"
+                                    size={42}
+                                    color="#A9D7FF"
+                                />
+                            </View>
 
-            <View
-                className='flex-1 justify-end w-5/6 items-center pb-10'
-            >
-                <View className='bg-black/90 w-full rounded-2xl p-6 gap-4'>
+                            <Text className="text-white text-[34px] font-bold">
+                                Chess
+                                <Text className="text-[#38A8FF]">
+                                    Vision
+                                </Text>
+                            </Text>
 
-                    <View>
-                        <Text className='text-white mb-2 font-semibold'>
-                            Username
-                        </Text>
+                            <Text className="text-[#B0C5D8] text-sm mt-2">
+                                Analyze. Learn. Improve.
+                            </Text>
+                        </View>
 
-                        <TextInput
-                            className='w-full h-[50px] bg-[#1B2733] text-white rounded-xl px-4 border border-[#344454]'
-                            value={username}
-                            placeholder="Enter your username"
-                            placeholderTextColor="#7D8995"
-                            onChangeText={setUsername}
-                        />
-                    </View>
+                        {/* Form */}
+                        <View
+                            className="rounded-3xl p-5 my-8"
+                            style={{
+                                backgroundColor: "rgba(8, 23, 40, 0.92)",
+                                borderWidth: 1,
+                                borderColor: "#254562",
+                            }}
+                        >
+                            <Text className="text-white text-xl font-bold mb-1">
+                                {isRegistering
+                                    ? "Create an account"
+                                    : "Welcome back"}
+                            </Text>
 
-                    <View>
-                        <Text className='text-white mb-2 font-semibold'>
-                            Password
-                        </Text>
+                            <Text className="text-[#91A8BC] text-xs mb-6">
+                                {isRegistering
+                                    ? "Start your ChessVision journey"
+                                    : "Sign in to continue improving"}
+                            </Text>
 
-                        <TextInput
-                            className='w-full h-[50px] bg-[#1B2733] text-white rounded-xl px-4 border border-[#344454]'
-                            value={password}
-                            placeholder="Enter your password"
-                            placeholderTextColor="#7D8995"
-                            secureTextEntry
-                            onChangeText={setPassword}
-                        />
-                    </View>
-
-                    {
-                        isRegistering &&
-                        <View>
-                            <Text className='text-white mb-2 font-semibold'>
-                                Chess.com Username
+                            {/* Username */}
+                            <Text className="text-[#D5E5F5] text-sm font-semibold mb-2">
+                                Username
                             </Text>
 
                             <TextInput
-                                className='w-full h-[50px] bg-[#1B2733] text-white rounded-xl px-4 border border-[#344454]'
-                                value={chessComUsername}
-                                placeholder="Enter your Chess.com username"
-                                placeholderTextColor="#7D8995"
-                                onChangeText={setChessComUsername}
+                                className="h-[52px] rounded-xl px-4 text-white mb-4"
+                                style={{
+                                    backgroundColor: "#152A3D",
+                                    borderWidth: 1,
+                                    borderColor: "#2B4B65",
+                                }}
+                                placeholder="Enter your username"
+                                placeholderTextColor="#7893AA"
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                                value={username}
+                                onChangeText={setUsername}
                             />
-                            <Pressable
-                                className='w-full h-[50px] bg-[#4D7CFE] rounded-xl justify-center items-center mt-5 mb-2'
-                                onPress={async () => {
-                                    console.log("Clicked on press")
-                                    //make sure all fields are filled in
-                                    if (username != "" && password != "" && chessComUsername != "") {
-                                        console.log("Inside condition")
-                                        const status = await createNewUser(username, password, chessComUsername)
 
-                                        if (status == 200) {
-                                            router.navigate('/home')
-                                        }
+                            {/* Password */}
+                            <Text className="text-[#D5E5F5] text-sm font-semibold mb-2">
+                                Password
+                            </Text>
+
+                            <View
+                                className="flex-row items-center rounded-xl mb-4"
+                                style={{
+                                    backgroundColor: "#152A3D",
+                                    borderWidth: 1,
+                                    borderColor: "#2B4B65",
+                                }}
+                            >
+                                <TextInput
+                                    className="flex-1 h-[52px] px-4 text-white"
+                                    placeholder="Enter your password"
+                                    placeholderTextColor="#7893AA"
+                                    secureTextEntry={!showPassword}
+                                    value={password}
+                                    onChangeText={setPassword}
+                                />
+
+                                <Pressable
+                                    onPress={() => setShowPassword(!showPassword)}
+                                    className="px-4 py-3"
+                                    accessibilityLabel={
+                                        showPassword ? "Hide password" : "Show password"
                                     }
-                                }}
-                            >
-                                <Text className='text-white font-bold text-base'>
-                                    Sign Up
-                                </Text>
-                            </Pressable>
-                            <Pressable
-                                className='w-full h-[50px] border border-[#4D7CFE] rounded-xl justify-center items-center'
-                                onPress={() => {
-                                    setIsRegistering(false)
-                                }}
-                            >
-                                <Text className='text-[#4D7CFE] font-semibold text-base'>
-                                    Login
-                                </Text>
-                            </Pressable>
-                        </View>
-
-
-                    }
-                    {
-                        !isRegistering && <View>
-                            <Pressable
-                                className='w-full h-[50px] bg-[#4D7CFE] rounded-xl justify-center items-center mt-2'
-                                onPress={async () => {
-                                    console.log("Clicked login button")
-                                    const status = await login(username, password)
-                                    if (status == 200) {
-                                        //set global states
-                                        const response = await getUserGames()
-
-                                        const gamesByYearObj: gamesByYear = {
-                                            year: new Date().getFullYear(),
-                                            games: response
-                                        }
-                                        //console.log("BEFORE DISPATCH:", store.getState());
-
-                                        dispatch(setGamesByYear(gamesByYearObj))
-                                        //console.log("AFTER DISPATCH:", store.getState());
-
-                                        router.navigate('/(tabs)/home')
-                                    }
-                                }}
-                            >
-                                <Text className='text-white font-bold text-base'>
-                                    Login
-                                </Text>
-                            </Pressable>
-                            <View className='flex-row w-full flex justify-center items-center'>
-                                <View className='flex-1 bg-gray-600 h-[1px] mr-2'></View>
-                                <Text className='text-white text-center mt-2 mb-2'>Or</Text>
-                                <View className='flex-1 bg-gray-600 h-[1px] ml-2'></View>
-
+                                >
+                                    <FontAwesome6
+                                        name={showPassword ? "eye-slash" : "eye"}
+                                        iconStyle="solid"
+                                        size={17}
+                                        color="#91A8BC"
+                                    />
+                                </Pressable>
                             </View>
+
+                            {/* Chess.com Username */}
+                            {isRegistering && (
+                                <>
+                                    <Text className="text-[#D5E5F5] text-sm font-semibold mb-2">
+                                        Chess.com Username
+                                    </Text>
+
+                                    <TextInput
+                                        className="h-[52px] rounded-xl px-4 text-white mb-4"
+                                        style={{
+                                            backgroundColor: "#152A3D",
+                                            borderWidth: 1,
+                                            borderColor: "#2B4B65",
+                                        }}
+                                        placeholder="Enter your Chess.com username"
+                                        placeholderTextColor="#7893AA"
+                                        autoCapitalize="none"
+                                        autoCorrect={false}
+                                        value={chessComUsername}
+                                        onChangeText={setChessComUsername}
+                                    />
+                                </>
+                            )}
+
+                            {/* Error */}
+                            {!!error && (
+                                <Text className="text-[#FF8E9A] text-xs mb-4">
+                                    {error}
+                                </Text>
+                            )}
+
+                            {/* Submit */}
                             <Pressable
-                                className='w-full h-[50px] border border-[#4D7CFE] rounded-xl justify-center items-center'
-                                onPress={() => { setIsRegistering(true) }}
+                                onPress={
+                                    isRegistering ? handleRegister : handleLogin
+                                }
+                                className="h-[52px] rounded-xl items-center justify-center mt-2"
+                                style={({ pressed }) => ({
+                                    backgroundColor: pressed
+                                        ? "#1C67D9"
+                                        : "#287CF0",
+                                })}
                             >
-                                <Text className='text-[#4D7CFE] font-semibold text-base'>
-                                    Create an account
+                                <Text className="text-white text-base font-bold">
+                                    {isRegistering ? "Sign Up" : "Login"}
+                                </Text>
+                            </Pressable>
+
+                            {/* Divider */}
+                            <View className="flex-row items-center my-5">
+                                <View className="flex-1 h-[1px] bg-[#2B4054]" />
+
+                                <Text className="text-[#91A8BC] mx-4 text-xs">
+                                    OR
+                                </Text>
+
+                                <View className="flex-1 h-[1px] bg-[#2B4054]" />
+                            </View>
+
+                            {/* Switch Mode */}
+                            <Pressable
+                                className="h-[52px] rounded-xl items-center justify-center"
+                                style={{
+                                    borderWidth: 1,
+                                    borderColor: "#3489D1",
+                                }}
+                                onPress={() => {
+                                    setIsRegistering(!isRegistering);
+                                    setError("");
+                                }}
+                            >
+                                <Text className="text-[#60B8FF] font-semibold">
+                                    {isRegistering
+                                        ? "Already have an account? Login"
+                                        : "Create an account"}
                                 </Text>
                             </Pressable>
                         </View>
-                    }
 
-                </View>
-            </View>
-
+                        {/* Footer */}
+                        <Text className="text-[#6D8AA5] text-xs text-center">
+                            Study smarter. Play stronger.
+                        </Text>
+                    </ScrollView>
+                </KeyboardAvoidingView>
+            )}
         </SafeAreaView>
-    )
+    );
 }

@@ -1,7 +1,9 @@
+import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { useAppDispatch, } from "../hooks/reduxHooks";
-import { setCurrentGame } from '../Store/slices/GamesSlices';
+import { storeRecentAnalysis } from "../helpers/LocalStorage";
+import { useAppDispatch, useAppSelector } from "../hooks/reduxHooks";
+import { setCurrentAnalyzedMove, setCurrentGame, setHasSelectedGame } from '../Store/slices/GamesSlices';
 import type { Game } from "../types/responses";
 type Props = {
     monthIndex: number;
@@ -12,18 +14,12 @@ export function MonthlyGamesBox({
     monthIndex,
     games
 }: Props) {
+    const router = useRouter()
     const dispatch = useAppDispatch()
-    useEffect(() => {
-        console.log("First game:", {
-            white: games[0]?.white.username,
-            whiteRating: games[0]?.white.rating,
-            black: games[0]?.black.username,
-            blackRating: games[0]?.black.rating,
-            result: games[0]?.pgn.match(/\[Result "(.*?)"\]/)?.[1],
-            timeClass: games[0]?.time_class,
-            uuid: games[0]?.uuid
-        });
-    }, [games])
+    //check if user has already chosen to analyze a game
+    const hasSelectedGame = useAppSelector(state => state.games.hasSelectedGame)
+    const currGame = useAppSelector(state => state.games.currGame)
+   
     const [isOpen, setIsOpen] = useState(false);
 
     const months = [
@@ -75,8 +71,16 @@ export function MonthlyGamesBox({
                             key={game.uuid ?? index}
                             className="px-4 py-3 border-t border-[#1E3042]"
                             onPress={async () => {
+
+                                if (hasSelectedGame) {
+                                    await storeRecentAnalysis(currGame)
+                                }
                                 console.log("Dispatching: " + game.uuid)
                                 dispatch(setCurrentGame(game))
+                                dispatch(setCurrentAnalyzedMove(-1))
+                                //indicate a game has been selected so when user moves its not appended to score sheet
+                                dispatch(setHasSelectedGame(true))
+                                router.navigate("/(tabs)/analysis")
 
                             }}
                         >

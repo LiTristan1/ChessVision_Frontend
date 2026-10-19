@@ -45,6 +45,7 @@ export type DbGameType = {
     game_pgn: string
 }
 export type Game = {
+    id: string,
     url: string,
     time_control: string,
     end_time: number,
@@ -63,7 +64,7 @@ export type gamesByYear = {
     year: number,
     games: Game[][] | null
 }
-type PlayerQuickInfo = {
+export type PlayerQuickInfo = {
     rating: number,
     result: GameResult,
     username: string,
@@ -161,6 +162,7 @@ export type MasterGamePreview = {
 
 };
 export type PositionAnalysis = {
+    id: string,
     moveIndex: number;
     gameString: string;
     masterGames: MasterGamePreview[] | null;
@@ -252,4 +254,26 @@ export type ChessComStats = {
 export type FullProfileResponse = {
     profile: ChessComProfile,
     stats: ChessComStats
+}
+
+export type StockFishResponse = {
+    success: boolean,
+    evaluation: string,
+    mate: number | null,
+    bestmove: string,
+    continuation: string
+
+}
+
+
+export type Opening = {
+    id: string;
+    opening_class: "A" | "B" | "C" | "D" | "E";
+    eco: string;
+    name: string;
+    pgn: string;
+};
+
+export type MovesPGN = {
+    moves: string
 }

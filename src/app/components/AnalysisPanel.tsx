@@ -1,7 +1,7 @@
-import { ScrollView, Text, View } from "react-native";
+import { useRouter } from "expo-router";
+import { Pressable, ScrollView, Text, View } from "react-native";
+import { useAppDispatch } from "../hooks/reduxHooks";
 import { PositionAnalysis } from "../types/responses";
-
-
 
 type Props = {
     analysis: PositionAnalysis[] | null;
@@ -15,6 +15,8 @@ export default function AnalysisPanel({
     isAnalyzing
 }: Props) {
 
+    const dispatch = useAppDispatch()
+    const router = useRouter()
     // Initial board has moveIndex 0.
     // First analyzed move is analysis[0].
     const positionAnalysis =
@@ -167,9 +169,24 @@ export default function AnalysisPanel({
                     <View className="gap-2">
 
                         {masterGames.map(game => (
-                            <View
+                            <Pressable
                                 key={game.id}
                                 className="bg-[#101923] rounded-lg p-3 gap-2"
+                                onPress={() => {
+                                    router.push({
+                                        pathname: "/masterAnalysis/[id]",
+                                        params: {
+                                            id: game.id,
+                                            white: game.white,
+                                            black: game.black,
+                                            whiteElo: String(game.white_elo ?? ""),
+                                            blackElo: String(game.black_elo ?? ""),
+                                            event: game.event ?? "Master Game"
+                                        }
+                                    });
+
+                                }
+                                }
                             >
                                 <View className="flex-row justify-between items-center">
 
@@ -219,7 +236,7 @@ export default function AnalysisPanel({
                                     </View>
 
                                 </View>
-                            </View>
+                            </Pressable>
                         ))}
 
                         {masterGames.length === 0 && (

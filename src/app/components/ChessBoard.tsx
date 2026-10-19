@@ -1,19 +1,24 @@
 import { FontAwesome6 } from "@react-native-vector-icons/fontawesome6";
+import { memo } from 'react';
 import { Pressable, View } from "react-native";
 import { colors } from "../../../themes/themes";
 import { useAppDispatch, useAppSelector } from "../hooks/reduxHooks";
 import { ChessGame, Position } from '../models/pieces';
 import { setCurrentAnalyzedMove } from "../Store/slices/GamesSlices";
 import { Square } from "./Square";
-
 type Props = {
     currentPosition: Position,
     setCurrentPosition: React.Dispatch<React.SetStateAction<Position>>,
     chessGame: ChessGame
     setMoves: React.Dispatch<React.SetStateAction<string[][]>>
+    updateAnalysisIndex?: boolean
+    lockMoves: boolean
+    onBack: () => void
+    onNext: () => void
+    onMove: () => void
 }
-export function ChessBoard(
-    { currentPosition, setCurrentPosition, chessGame, setMoves }: Props
+export const ChessBoard = memo(function ChessBoard(
+    { currentPosition, setCurrentPosition, chessGame, setMoves, updateAnalysisIndex, lockMoves, onBack, onNext, onMove }: Props
 ) {
     const dispatch = useAppDispatch()
     const analyzingIndex = useAppSelector(state => state.games.analyzingMoveIndex)
@@ -48,6 +53,9 @@ export function ChessBoard(
                                                 row={index}
                                                 col={indexCol}
                                                 isInCheck={square.isChecked}
+                                                lockMoves={lockMoves}
+                                                onMove={onMove}
+
                                             />
                                         )
                                     })
@@ -74,10 +82,16 @@ export function ChessBoard(
                         console.log("Previous Pressed")
                         // go to previous position
                         if (currentPosition.prev != null) {
+                            onBack()
                             chessGame.moveIndex = chessGame.moveIndex - 1
                             console.log(`Is same as current ${currentPosition == currentPosition.prev}`)
                             setCurrentPosition(currentPosition.prev)
-                            dispatch(setCurrentAnalyzedMove(analyzingIndex - 1))
+
+                            //multiple components use this screen to need to make sure only the component that 
+                            //is analyzing can change any of the variables related to any analysis 
+                            if (updateAnalysisIndex) {
+                                dispatch(setCurrentAnalyzedMove(analyzingIndex - 1))
+                            }
                         }
                     }}
                 >
@@ -97,7 +111,11 @@ export function ChessBoard(
                         // go to next position
                         if (currentPosition.next != null && currentPosition.next[0] != null) {
                             setCurrentPosition(currentPosition.next[0])
-                            dispatch(setCurrentAnalyzedMove(analyzingIndex + 1))
+                            if (updateAnalysisIndex) {
+                                dispatch(setCurrentAnalyzedMove(analyzingIndex + 1))
+                            }
+
+                            onNext()
 
                         }
                     }
@@ -115,3 +133,4 @@ export function ChessBoard(
         </View >
     )
 }
+)

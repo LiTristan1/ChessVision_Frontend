@@ -1,4 +1,6 @@
-import { UCIMove } from "../types/responses";
+import { Chess } from "chess.js";
+import { getStockFishEvaluation } from "../api/games";
+import { StockFishResponse, UCIMove } from "../types/responses";
 
 
 export class ChessGameTree {
@@ -7,13 +9,55 @@ export class ChessGameTree {
 }
 
 export class ChessGame {
+    id: string = ""
     positions: Position | null = null
     moves: string[][] = []
     moveIndex: number = -1
     constructor(startingPosition: Position | null) {
         this.positions = startingPosition
     }
+    static getFenUpToPosition(position: Position): string {
 
+
+        const chess = new Chess();
+
+        const stack: Position[] = []
+        stack.push(position)
+        let currentPosition = position
+
+        while (currentPosition.prev != null) {
+            stack.push(currentPosition.prev)
+            currentPosition = currentPosition.prev
+        }
+
+
+        while (stack.length > 0) {
+            let temp = stack.pop()
+            if (temp == undefined) {
+                return ""
+            }
+            currentPosition = temp
+            const move = currentPosition.move
+
+            if (move == null) {
+                continue;
+            }
+
+            console.log("FEN before move:", chess.fen());
+            console.log("Move being applied:", move);
+            console.log("Legal moves:", chess.moves({ verbose: true }));
+            chess.move({
+                from: move.from,
+                to: move.to,
+                promotion: move.promotion?.toLowerCase()
+            });
+
+        }
+
+        return chess.fen()
+
+        //if position not found in game we parse it as the moves up to the game
+    }
     static convertToUciMoves(game: ChessGame): string[] {
         const uciMoves: string[] = [];
 
@@ -70,11 +114,21 @@ export class Position {
     movePlayed: string | null = null
     moveIndex: number = 0
     move: UCIMove | null = null
+    evaluation: StockFishResponse | null = null
     constructor(position: ChessBoardModel | null, next: Position[], prev: Position | null) {
         this.position = position
         this.next = next
         this.prev = prev
     }
+
+
+    async getEvaluation(chessGame: ChessGame) {
+        const response = await getStockFishEvaluation(this, chessGame)
+        this.evaluation = response
+    }
+
+
+
     //test
 }
 export class ChessSquareModel {

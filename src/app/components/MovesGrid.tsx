@@ -12,6 +12,7 @@ type Props = {
     setCurrentPosition: React.Dispatch<
         React.SetStateAction<Position>
     >;
+    updateAnalysisIndex?: boolean;
 };
 
 type SelectedMove = {
@@ -23,7 +24,8 @@ export function MovesGrid({
     game,
     moves,
     moveIndex,
-    setCurrentPosition
+    setCurrentPosition,
+    updateAnalysisIndex
 }: Props) {
     const dispatch = useAppDispatch();
 
@@ -50,7 +52,9 @@ export function MovesGrid({
 
         setSelectedMove({ index, color });
 
-        dispatch(setCurrentAnalyzedMove(analysisIndex));
+        if (updateAnalysisIndex) {
+            dispatch(setCurrentAnalyzedMove(analysisIndex));
+        }
 
         setCurrentPosition(current);
     };

@@ -4,11 +4,13 @@ import { createSlice } from '@reduxjs/toolkit';
 
 
 export interface PlayerSlice {
-    fullProfile: FullProfileResponse | null | undefined
+    fullProfile: FullProfileResponse | null | undefined,
+    chessVisionUserName: string
 }
 
 const initialState: PlayerSlice = {
-    fullProfile: null
+    fullProfile: null,
+    chessVisionUserName: ""
 }
 
 export const PlayerSlice = createSlice({
@@ -17,9 +19,12 @@ export const PlayerSlice = createSlice({
     reducers: {
         setFullProfile(state, action: PayloadAction<FullProfileResponse | undefined | null>) {
             state.fullProfile = action.payload
+        },
+        setChessVisionUserName(state, action: PayloadAction<string>){
+            state.chessVisionUserName = action.payload
         }
     }
 })
 
-export const { setFullProfile } = PlayerSlice.actions
+export const { setFullProfile,setChessVisionUserName } = PlayerSlice.actions
 export default PlayerSlice.reducer

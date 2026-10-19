@@ -1,6 +1,7 @@
 import { FontAwesome6 } from "@react-native-vector-icons/fontawesome6";
 import { ComponentProps } from "react";
 import { Pressable, View } from "react-native";
+import { useAppSelector } from "../hooks/reduxHooks";
 import { Bishop, ChessBoardModel, ChessGame, ChessSquareModel, King, Knight, Pawn, Position, Queen, Rook } from '../models/pieces';
 type Props = {
     row: number,
@@ -14,12 +15,21 @@ type Props = {
     setMoves: React.Dispatch<React.SetStateAction<string[][]>>
     chessGame: ChessGame
     isInCheck: boolean
+    lockMoves: boolean
+    onMove: () => void
 }
 export function Square(
-    { row, col, backgroundColor, chessPiece, isPossibleMove, board, position, setCurrentPosition, chessGame, isInCheck, setMoves }: Props
+    { row, col, backgroundColor, chessPiece, isPossibleMove, board, position, setCurrentPosition, chessGame, isInCheck, setMoves, lockMoves, onMove }: Props
 ) {
+    const hasSelectedGame = useAppSelector(state => state.games.hasSelectedGame)
 
     function handleMovementProcedure(promoting: boolean = false) {
+
+        console.log("===== BEFORE MOVE =====");
+        console.log("Current turn:", board.whosMove);
+        console.log("Moving piece:", board.movingPiece);
+        console.log("Destination:", row, col);
+        console.log("Current position index:", position.moveIndex);
         let copy = new ChessBoardModel()
         copy.initBoard()
         ChessBoardModel.copyModel(board, copy)
@@ -50,20 +60,35 @@ export function Square(
         position.next?.push(newPosition)
 
 
-        console.log("Move Index: ", chessGame.moveIndex)
-        if (chessGame.moveIndex >= 0 && chessGame.moves[chessGame.moveIndex].length < 2) {
+        let promotionUci = ""
 
-            console.log("Adding new move to same index")
-            chessGame.moves[chessGame.moveIndex].push(notatedMove)
-        } else {
-            chessGame.moveIndex = chessGame.moveIndex + 1
-            chessGame.moves.push([notatedMove])
+        if (promoting && board.promotingPiece != null) {
+            promotionUci = ChessBoardModel.promotionUci(board.promotingPiece)
         }
+        newPosition.move = {
+            from: ChessBoardModel.indiceToUciMoveString([copy.movingPiece[0], copy.movingPiece[1]]),
+            to: ChessBoardModel.indiceToUciMoveString([row, col]),
+            promotion: promotionUci as NonNullable<Position['move']>['promotion']
+        }
+        console.log("Move Index: ", chessGame.moveIndex)
 
-        setMoves([...chessGame.moves])
+        //if we already are analyzing a game dont add the new move into the scoresheet (allow sublines in a future release)
+        if (!hasSelectedGame) {
+            if (chessGame.moveIndex >= 0 && chessGame.moves[chessGame.moveIndex].length < 2) {
+
+                console.log("Adding new move to same index")
+                chessGame.moves[chessGame.moveIndex].push(notatedMove)
+            } else {
+                chessGame.moveIndex = chessGame.moveIndex + 1
+                chessGame.moves.push([notatedMove])
+            }
+
+            setMoves([...chessGame.moves])
+        }
         newPosition.prev = position
         newPosition.moveIndex = chessGame.moveIndex
         setCurrentPosition(newPosition)
+        onMove()
 
     }
 
@@ -110,47 +135,61 @@ export function Square(
                 zIndex: board.board[row][col].isPromoting ? 100 : 1,
             }}
             onPress={() => {
-                //clear all moves
-                board.clearPossibleMoves()
-                if (!isPossibleMove) {
-                    board.board[row][col].isPromoting = false
-                    if (chessPiece != null && board.whosMove == chessPiece.color) {
-                        if (board.isChecking && chessPiece.type != 'king') {
-                            return;
-                        }
-                        chessPiece.getMovementArr(
-                            board
-                        )
-                        board.possibleMoves = chessPiece.movementArr
-                        board.movingPiece = [row, col]
 
+                if (!lockMoves) {
+                    console.log("===== SQUARE PRESSED =====");
+                    console.log("Square:", row, col);
+                    console.log("isPossibleMove:", isPossibleMove);
+                    console.log("Board possible moves:", board.possibleMoves);
+                    console.log("Current turn:", board.whosMove);
+                    console.log("Piece color:", chessPiece?.color);
+                    console.log("Selected piece:", board.movingPiece);
+
+                    //clear all moves
+                    board.clearPossibleMoves()
+                    if (!isPossibleMove) {
+                        board.board[row][col].isPromoting = false
+                        if (chessPiece != null && board.whosMove == chessPiece.color) {
+                            if (board.isChecking && chessPiece.type != 'king') {
+                                return;
+                            }
+                            chessPiece.getMovementArr(
+                                board
+                            )
+                            board.possibleMoves = chessPiece.movementArr
+                            board.movingPiece = [row, col]
+
+                            let copy = new ChessBoardModel()
+                            copy.initBoard()
+                            ChessBoardModel.copyModel(board, copy)
+
+                            for (let i = 0; i < copy.possibleMoves.length; i++) {
+                                let move = copy.possibleMoves[i];
+                                copy.board[move[0]][move[1]].isPossibleMove = true
+                            }
+
+                            let updatedPosition = new Position(copy, position.next, position.prev)
+                            updatedPosition.move = position.move
+                            updatedPosition.moveIndex = position.moveIndex
+                            updatedPosition.evaluation = position.evaluation
+                            setCurrentPosition(updatedPosition)
+                        }
+                    } else {
+                        //make a new board state to be tracked by the game
                         let copy = new ChessBoardModel()
                         copy.initBoard()
                         ChessBoardModel.copyModel(board, copy)
 
-                        for (let i = 0; i < copy.possibleMoves.length; i++) {
-                            let move = copy.possibleMoves[i];
-                            copy.board[move[0]][move[1]].isPossibleMove = true
+                        let promotionRow = copy.board[copy.movingPiece[0]][copy.movingPiece[1]].chessPiece?.color == 'white' ? ChessSquareModel.whitePromotionRow : ChessSquareModel.blackPromotionRow
+                        if (copy.board[copy.movingPiece[0]][copy.movingPiece[1]].chessPiece?.type == 'pawn' && row == promotionRow) {
+                            console.log("Still inside condition")
+                            copy.board[row][col].isPromoting = true
+                            setCurrentPosition(new Position(copy, position.next, position.prev))
+                            return
                         }
+                        handleMovementProcedure()
 
-                        let updatedPosition = new Position(copy, position.next, position.prev)
-                        setCurrentPosition(updatedPosition)
                     }
-                } else {
-                    //make a new board state to be tracked by the game
-                    let copy = new ChessBoardModel()
-                    copy.initBoard()
-                    ChessBoardModel.copyModel(board, copy)
-
-                    let promotionRow = copy.board[copy.movingPiece[0]][copy.movingPiece[1]].chessPiece?.color == 'white' ? ChessSquareModel.whitePromotionRow : ChessSquareModel.blackPromotionRow
-                    if (copy.board[copy.movingPiece[0]][copy.movingPiece[1]].chessPiece?.type == 'pawn' && row == promotionRow) {
-                        console.log("Still inside condition")
-                        copy.board[row][col].isPromoting = true
-                        setCurrentPosition(new Position(copy, position.next, position.prev))
-                        return
-                    }
-                    handleMovementProcedure()
-
                 }
 
                 //make a copy of the board

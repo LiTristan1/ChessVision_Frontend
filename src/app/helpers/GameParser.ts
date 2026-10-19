@@ -9,7 +9,7 @@ import {
     Rook
 } from "../models/pieces";
 import { UCIMove } from "../types/responses";
-export function GameParser(pgn: string): ChessGame {
+export function GameParser(pgn: string, id: string): ChessGame {
 
 
     // 1. Create initial chess board
@@ -27,7 +27,7 @@ export function GameParser(pgn: string): ChessGame {
 
     // 3. Create new game
     const chessGame = new ChessGame(initialPosition);
-
+    chessGame.id = id
 
     // 4. Extract moves from PGN
     const moves: string[] = pgn
@@ -602,6 +602,7 @@ function handleMovementProcedure(
     position.next.push(newPosition);
 
     newPosition.prev = position;
+
     newPosition.move = {
         from: ChessBoardModel.indiceToUciMoveString([rowFrom, colFrom]),
         to: ChessBoardModel.indiceToUciMoveString([rowTo, colTo]),
@@ -620,4 +621,10 @@ function handleMovementProcedure(
     newPosition.moveIndex = chessGame.moveIndex;
 
     return newPosition; // IMPORTANT
+}
+
+export function createDummyChessBoard(){
+    const chessBoard = new ChessBoardModel()
+    chessBoard.initBoard()
+    return chessBoard
 }

@@ -2,23 +2,24 @@ import { useEffect, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { containers } from "../../../themes/themes";
+import { useRouter } from "expo-router";
 import { getFullProfile } from "../api/player";
 import { ActionBox } from "../components/ActionBox";
 import { AppTitle } from "../components/appTitle";
 import { RatingCard } from "../components/RatingCard";
-import { SearchBar } from "../components/SearchBar";
-import { Slide } from "../components/Slide";
+import RecentAnalysis from "../components/RecentAnalysis";
+import { getRecentAnalysis, storeRecentAnalysis } from "../helpers/LocalStorage";
 import { useAppDispatch, useAppSelector } from "../hooks/reduxHooks";
+import { setCurrentAnalyzedMove, setCurrentGame, setHasSelectedGame } from "../Store/slices/GamesSlices";
 import { setFullProfile } from "../Store/slices/PlayerSlice";
-
 export default function Home() {
-
+  const router = useRouter()
   const dispatch = useAppDispatch()
   const profile = useAppSelector(state => state.player.fullProfile)
-
+  const recentAnalysis = useAppSelector(state => state.games.recentAnalysis)
   const [isLoading, setIsLoading] = useState<boolean>(false)
-
+  const hasSelectedGame = useAppSelector(state => state.games.hasSelectedGame)
+  const currGame = useAppSelector(state => state.games.currGame)
   async function getProfile() {
     setIsLoading(true)
     console.log("Use effect getting profile")
@@ -29,31 +30,44 @@ export default function Home() {
     setIsLoading(false)
   }
 
+
+
   useEffect(() => {
 
     getProfile()
+    getRecentAnalysis()
+    //fetch previously analyzed games from local storage
+
   }, [])
 
+
+
   return (
-    <SafeAreaView style={containers.PrimaryContainer}>
+    <SafeAreaView
+      className="flex-1"
+      style={{ backgroundColor: "#0C1520" }}
+    >
       <ScrollView
-        contentContainerStyle={[
-          containers.ScrollContainer,
-          { paddingBottom: 40 }
-        ]}
+        className="flex-1"
+        contentContainerStyle={{
+          paddingHorizontal: 18,
+          paddingTop: 16,
+          paddingBottom: 48,
+        }}
         showsVerticalScrollIndicator={false}
       >
+        {/* Branding */}
+        <View className="mb-7">
+          <AppTitle showOnlyTitle={true} />
+        </View>
 
-        {/* App Title */}
-        <AppTitle showOnlyTitle={true} />
-
-        {/* Welcome Section */}
-        <View className="mt-5 mb-5">
-          <Text className="text-[#8FA5BA] text-xs font-semibold tracking-widest mb-2">
-            YOUR CHESS DASHBOARD
+        {/* Welcome */}
+        <View className="mb-7">
+          <Text className="text-[#91A8BC] text-xs font-medium mb-2">
+            YOUR DASHBOARD
           </Text>
 
-          <Text className="text-white text-2xl font-bold">
+          <Text className="text-white text-[27px] font-bold">
             Welcome back,{" "}
             <Text className="text-[#A8C8E7]">
               {profile?.profile.username ?? "Player"}
@@ -61,148 +75,127 @@ export default function Home() {
           </Text>
 
           <Text className="text-[#91A8BC] text-sm mt-2">
-            Analyze your games and take your chess to the next level.
+            Ready to improve your next move?
           </Text>
         </View>
 
-        {/* Player Rating Overview */}
-        <View className="bg-[#152535] rounded-2xl border border-[#263C50] p-4 mb-6">
+        {/* Ratings */}
+        <View className="bg-[#152535] rounded-2xl border border-[#2B4054] p-4 mb-8">
+          <View className="flex-row justify-between items-center mb-4">
+            <Text className="text-white text-base font-bold">
+              Your Ratings
+            </Text>
 
-          <View className="flex-row items-center justify-between mb-4">
-            <View>
-              <Text className="text-white text-base font-semibold">
-                Player Overview
-              </Text>
-
-              <Text className="text-[#91A8BC] text-xs mt-1">
-                Your Chess.com ratings
-              </Text>
-            </View>
-
-            {profile?.profile.league && (
-              <View className="bg-[#243C51] px-3 py-1.5 rounded-full">
-                <Text className="text-[#A8C8E7] text-xs font-semibold">
-                  {profile.profile.league}
-                </Text>
-              </View>
-            )}
+            <Text className="text-[#91A8BC] text-xs">
+              Chess.com
+            </Text>
           </View>
-
-          <View className="h-[1px] bg-[#263C50] mb-4" />
 
           <View className="flex-row gap-2">
             <RatingCard
               title="BLITZ"
               rating={profile?.stats.chess_blitz?.last.rating}
             />
-
             <RatingCard
               title="RAPID"
               rating={profile?.stats.chess_rapid?.last.rating}
             />
-
             <RatingCard
               title="BULLET"
               rating={profile?.stats.chess_bullet?.last.rating}
             />
           </View>
 
-          <View className="flex-row items-center justify-between mt-4 pt-3 border-t border-[#263C50]">
+          <View className="flex-row items-center justify-between mt-4 pt-3 border-t border-[#2B4054]">
             <Text className="text-[#91A8BC] text-xs">
-              Chess.com account
+              {profile?.profile.league
+                ? `${profile.profile.league} League`
+                : "Connected account"}
             </Text>
 
-            <Text className="text-[#C4D8EA] text-xs font-medium">
+            <Text
+              className="text-[#B8D5EC] text-xs font-medium"
+              numberOfLines={1}
+            >
               {profile?.profile.username ?? "Not loaded"}
             </Text>
           </View>
         </View>
 
-        {/* Main Introduction */}
-        <View className="mb-6">
-          <Slide
-            description="Analyze chess positions, explore opening trends, and discover how top grandmasters approached similar positions throughout chess history."
-            image={require("../public/assets/chessVisionLogo.png")}
-          />
-        </View>
-
-        {/* Search */}
-        <View className="mb-7">
-          <Text className="text-white text-lg font-bold mb-1">
-            Explore Chess
-          </Text>
-
-          <Text className="text-[#91A8BC] text-sm mb-4">
-            Discover openings, players, and positions.
-          </Text>
-
-          <SearchBar
-            placeholder="Search an opening, position, or player..."
-          />
-        </View>
-
         {/* Analysis Tools */}
-        <View className="mb-7">
-
-          <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-white text-lg font-bold">
+        <View className="mb-8">
+          <View className="mb-4">
+            <Text className="text-white text-xl font-bold">
               Analysis Tools
             </Text>
-
-            <View className="h-[1px] flex-1 bg-[#263C50] ml-4" />
+            <Text className="text-[#91A8BC] text-xs mt-1">
+              Explore, study, and improve
+            </Text>
           </View>
 
-          <View className="flex-row flex-wrap gap-4">
-            <ActionBox
-              icon="chess-board"
-              description="Analyze Position"
-            />
+          <View style={{ gap: 12 }}>
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <ActionBox
+                  icon="chess-board"
+                  description="Analyze Position"
+                  onPress={() => { }}
+                />
+              </View>
 
-            <ActionBox
-              icon="compass"
-              description="Explore Openings"
-            />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <ActionBox
+                  icon="compass"
+                  description="Explore Openings"
+                  onPress={() => router.navigate("/openings")}
+                />
+              </View>
+            </View>
 
-            <ActionBox
-              icon="chess-knight"
-              description="GM Games"
-            />
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <ActionBox
+                  icon="chess-knight"
+                  description="GM Games"
+                  onPress={() => { }}
+                />
+              </View>
 
-            <ActionBox
-              icon="chart-line"
-              description="Insights"
-            />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <ActionBox
+                  icon="chart-line"
+                  description="Insights"
+                  onPress={() => { }}
+                />
+              </View>
+            </View>
           </View>
         </View>
 
         {/* Recent Analysis */}
-        <View className="mb-6">
-          <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-white text-lg font-bold">
-              Recent Analysis
-            </Text>
+        <View className="mb-7">
+          <RecentAnalysis
+            games={recentAnalysis}
+            onGamePress={async (game) => {
+              if (hasSelectedGame) {
+                await storeRecentAnalysis(currGame);
+              }
 
-            <View className="h-[1px] flex-1 bg-[#263C50] ml-4" />
-          </View>
+              console.log("Dispatching: " + game.uuid);
 
-          <View className="bg-[#152535] border border-[#263C50] rounded-2xl px-5 py-8 items-center justify-center">
-            <View className="w-12 h-12 bg-[#20364A] rounded-full items-center justify-center mb-3">
-              <Text className="text-[#A8C8E7] text-xl">
-                ♞
-              </Text>
-            </View>
+              dispatch(setCurrentGame(game));
+              dispatch(setCurrentAnalyzedMove(-1));
+              dispatch(setHasSelectedGame(true));
 
-            <Text className="text-white text-sm font-semibold mb-1">
-              No recent analysis
-            </Text>
-
-            <Text className="text-[#91A8BC] text-xs text-center leading-5">
-              Your recently analyzed games and positions will appear here.
-            </Text>
-          </View>
+              router.navigate("/(tabs)/analysis");
+            }}
+          />
         </View>
+
 
       </ScrollView>
     </SafeAreaView>
   );
+
+
 }
