@@ -65,7 +65,7 @@ export default function TabLayout() {
                     )
                 }}
             />
-            <Tabs.Screen
+            {/* <Tabs.Screen
                 name="cameraLog"
                 options={{
                     title: "Camera",
@@ -78,7 +78,7 @@ export default function TabLayout() {
                         />
                     ),
                 }}
-            />
+            /> */}
 
             <Tabs.Screen
                 name="profile"

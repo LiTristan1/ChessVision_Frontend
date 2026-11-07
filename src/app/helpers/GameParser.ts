@@ -197,6 +197,9 @@ export function parseMove(
         }
 
         case "Q": {
+            console.log("Move:", move);
+            console.log("Whose move:", whosMove);
+            console.log("Destination:", destinationRow, destinationCol);
             const candidates = Queen.withinCaptureReach(
                 copy,
                 destinationRow,
@@ -331,7 +334,7 @@ export function parseMove(
         }
 
         default: {
-            console.log("Pawn move:", move);
+
 
             const isCapture = cleanMove.includes("x");
 
@@ -566,14 +569,21 @@ function handleMovementProcedure(
     move: string,
     promotionUci: "" | "n" | "b" | "q" | "r" = ""
 ): Position {
+    const promotionMap = {
+        q: "queen",
+        r: "rook",
+        b: "bishop",
+        n: "knight"
+    } as const;
 
     copy.movePiece(
         rowFrom,
         colFrom,
         rowTo,
         colTo,
-        null
+        promotionUci ? promotionMap[promotionUci] : null
     );
+
 
     copy.whosMove =
         copy.whosMove === "white"
@@ -623,7 +633,7 @@ function handleMovementProcedure(
     return newPosition; // IMPORTANT
 }
 
-export function createDummyChessBoard(){
+export function createDummyChessBoard() {
     const chessBoard = new ChessBoardModel()
     chessBoard.initBoard()
     return chessBoard

@@ -3,6 +3,7 @@ import { ComponentProps } from "react";
 import { Pressable, View } from "react-native";
 import { useAppSelector } from "../hooks/reduxHooks";
 import { Bishop, ChessBoardModel, ChessGame, ChessSquareModel, King, Knight, Pawn, Position, Queen, Rook } from '../models/pieces';
+import { UCIMove } from "../types/responses";
 type Props = {
     row: number,
     col: number
@@ -16,7 +17,7 @@ type Props = {
     chessGame: ChessGame
     isInCheck: boolean
     lockMoves: boolean
-    onMove: () => void
+    onMove: (move: UCIMove) => void
 }
 export function Square(
     { row, col, backgroundColor, chessPiece, isPossibleMove, board, position, setCurrentPosition, chessGame, isInCheck, setMoves, lockMoves, onMove }: Props
@@ -88,7 +89,8 @@ export function Square(
         newPosition.prev = position
         newPosition.moveIndex = chessGame.moveIndex
         setCurrentPosition(newPosition)
-        onMove()
+
+        onMove(newPosition.move)
 
     }
 
@@ -217,20 +219,18 @@ export function Square(
                 board.board[row][col].isPromoting && (
                     <View
                         className="absolute w-full z-50"
-                        style={
-                            row === ChessSquareModel.whitePromotionRow
-                                ? {
-                                    // Queen overlaps promotion square,
-                                    // remaining pieces extend upward
-                                    bottom: 0,
-                                    flexDirection: "column-reverse",
-                                }
-                                : {
-                                    // Queen overlaps promotion square,
-                                    // remaining pieces extend downward
-                                    top: 0,
-                                }
-                        }
+                        style={{
+                            top: row === ChessSquareModel.whitePromotionRow
+                                ? 0
+                                : undefined,
+                            bottom: row === ChessSquareModel.blackPromotionRow
+                                ? 0
+                                : undefined,
+                            flexDirection:
+                                row === ChessSquareModel.blackPromotionRow
+                                    ? "column-reverse"
+                                    : "column",
+                        }}
                     >
                         <Pressable
                             className="w-full aspect-square items-center justify-center bg-[#F0F0F0]"

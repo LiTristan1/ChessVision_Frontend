@@ -85,6 +85,7 @@ function OpeningTutorContent({
         [parsedOpening]
     );
 
+
     const [colorToPlayAs, setColorToPlayAs] =
         useState<"white" | "black">("white");
 
@@ -103,6 +104,7 @@ function OpeningTutorContent({
     const pendingUserMove = useRef(false);
     const [isValidatingMove, setIsValidatingMove] = useState(false);
     const [isOpponentTurnReady, setIsOpponentTurnReady] = useState(false);
+    const [currMove, setCurrMove] = useState<UCIMove | null>(null)
     const movesToPlay = useMemo(() => {
         const result: UCIMove[] = [];
         let temp: Position | null = initialPosition;
@@ -136,7 +138,7 @@ function OpeningTutorContent({
 
     function checkMove() {
         const expectedMove = movesToPlay[progress];
-        const playedMove = currentPosition.move;
+        const playedMove = currMove;
 
         if (!expectedMove || !playedMove) return;
 
@@ -156,6 +158,14 @@ function OpeningTutorContent({
     }
 
     useEffect(() => {
+        console.log("Triggered color change useEffect")
+        if (colorToPlayAs == 'black') {
+            setTimeout(() => {
+                setCurrentPosition(currentPosition.next[0])
+            }, 750)
+        }
+    }, [colorToPlayAs])
+    useEffect(() => {
         if (!pendingUserMove.current) return;
 
         pendingUserMove.current = false;
@@ -166,10 +176,10 @@ function OpeningTutorContent({
 
     function changeColor(color: "white" | "black") {
         pendingUserMove.current = false;
-        setColorToPlayAs(color);
         setCurrentPosition(initialPosition);
         setProgress(0);
         setLockMoves(false);
+        setColorToPlayAs(color);
     }
 
     function retryMove() {
@@ -198,8 +208,8 @@ function OpeningTutorContent({
             return;
         }
 
-        const nextPosition = currentPosition.next[0];
-
+        const nextPosition = currentPosition.prev?.next[0].next[0]
+        console.log("Auto move new position: " + nextPosition)
         if (!nextPosition) return;
 
         const timeout = setTimeout(() => {
@@ -210,6 +220,7 @@ function OpeningTutorContent({
 
     }, [
         currentPosition,
+        currMove,
         colorToPlayAs,
         lockMoves,
         isValidatingMove,
@@ -472,11 +483,12 @@ function OpeningTutorContent({
                                 setProgress(prev => prev + 1);
                             }
                         }}
-                        onMove={() => {
+                        onMove={(move: UCIMove) => {
                             pendingUserMove.current = true;
+                            setCurrMove(move)
                             setIsValidatingMove(true);
-
                         }}
+                        isInverted={colorToPlayAs == 'white' ? false : true}
                     />
 
                     <View className="h-3" />

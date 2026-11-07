@@ -45,11 +45,7 @@ export default function Games() {
         state => state.games.isAnalyzing
     )
 
-    useEffect(() => {
-        if (analysis != null) {
-            console.log("Analysis Received: " + JSON.stringify(analysis))
-        }
-    }, [analysis])
+
 
 
     /*
@@ -149,7 +145,7 @@ export default function Games() {
 
 
     const [selectedTab, setSelectedTab] =
-        useState<"Moves" | "Analysis" | "Insights">("Moves");
+        useState<"Moves" | "Analysis">("Moves");
 
     const analysisMoveIndex = useAppSelector(state => state.games.analyzingMoveIndex)
 
@@ -361,6 +357,7 @@ export default function Games() {
                         onBack={() => { }}
                         onMove={() => { }}
                         onNext={() => { }}
+                        isInverted={false}
                     />
 
                     <View className="h-3" />
@@ -377,7 +374,7 @@ export default function Games() {
 
                 {/* Tabs */}
                 <View className="bg-[#1C2537] rounded-2xl p-1.5 flex-row mb-4 border border-[#35405C]">
-                    {(["Moves", "Analysis", "Insights"] as const).map(tab => (
+                    {(["Moves", "Analysis"] as const).map(tab => (
                         <Pressable
                             key={tab}
                             onPress={() => setSelectedTab(tab)}
@@ -429,7 +426,7 @@ export default function Games() {
                     </View>
                 )}
 
-                {selectedTab === "Insights" && (
+                {/* {selectedTab === "Insights" && (
                     <View className="bg-[#1C2537] rounded-3xl p-6 items-center border border-[#35405C]">
                         <FontAwesome6
                             name="lightbulb"
@@ -446,7 +443,7 @@ export default function Games() {
 
                         </Text>
                     </View>
-                )}
+                )} */}
             </ScrollView>
         </SafeAreaView>
     );

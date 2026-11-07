@@ -139,7 +139,7 @@ export default function Home() {
                 <ActionBox
                   icon="chess-board"
                   description="Analyze Position"
-                  onPress={() => { }}
+                  onPress={() => { router.navigate("/(tabs)/analysis") }}
                 />
               </View>
 
@@ -152,7 +152,7 @@ export default function Home() {
               </View>
             </View>
 
-            <View style={{ flexDirection: "row", gap: 12 }}>
+            {/* <View style={{ flexDirection: "row", gap: 12 }}>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <ActionBox
                   icon="chess-knight"
@@ -168,7 +168,7 @@ export default function Home() {
                   onPress={() => { }}
                 />
               </View>
-            </View>
+            </View> */}
           </View>
         </View>
 

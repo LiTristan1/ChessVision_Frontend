@@ -251,6 +251,11 @@ export type ChessComStats = {
     };
 };
 
+export type ChessVisionUser = {
+    username: string,
+    chessComUsername: string,
+    email: string
+}
 export type FullProfileResponse = {
     profile: ChessComProfile,
     stats: ChessComStats

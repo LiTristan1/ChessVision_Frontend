@@ -5,6 +5,7 @@ import { colors } from "../../../themes/themes";
 import { useAppDispatch, useAppSelector } from "../hooks/reduxHooks";
 import { ChessGame, Position } from '../models/pieces';
 import { setCurrentAnalyzedMove } from "../Store/slices/GamesSlices";
+import { UCIMove } from "../types/responses";
 import { Square } from "./Square";
 type Props = {
     currentPosition: Position,
@@ -13,16 +14,19 @@ type Props = {
     setMoves: React.Dispatch<React.SetStateAction<string[][]>>
     updateAnalysisIndex?: boolean
     lockMoves: boolean
+    isInverted: boolean
     onBack: () => void
     onNext: () => void
-    onMove: () => void
+    onMove: (move: UCIMove) => void
 }
 export const ChessBoard = memo(function ChessBoard(
-    { currentPosition, setCurrentPosition, chessGame, setMoves, updateAnalysisIndex, lockMoves, onBack, onNext, onMove }: Props
+    { currentPosition, setCurrentPosition, chessGame, setMoves, updateAnalysisIndex, lockMoves, isInverted, onBack, onNext, onMove }: Props
 ) {
     const dispatch = useAppDispatch()
     const analyzingIndex = useAppSelector(state => state.games.analyzingMoveIndex)
     const chessBoardModel = currentPosition.position
+
+
     return (
         <View className="w-full">
 
@@ -31,7 +35,7 @@ export const ChessBoard = memo(function ChessBoard(
                 className='w-full aspect-square flex-wrap'
             >
                 {
-                    chessBoardModel?.board.map((row, index) => {
+                    !isInverted ? (chessBoardModel?.board.map((row, index) => {
 
                         return (
                             <View
@@ -39,6 +43,7 @@ export const ChessBoard = memo(function ChessBoard(
                                 className='w-full flex-row'>
                                 {
                                     row.map((square, indexCol) => {
+
                                         return (
                                             <Square
                                                 key={indexCol}
@@ -61,18 +66,51 @@ export const ChessBoard = memo(function ChessBoard(
                                     })
                                 }
 
-
-
-
-
-
                             </View>
                         )
 
                     }
                     )
-                }
+                    ) : (
+                        chessBoardModel?.board.map((_, index) => {
+                            const invertedIndex = 7 - index
+                            const row = chessBoardModel?.board[invertedIndex]
 
+                            return (
+                                <View
+                                    key={index}
+                                    className='w-full flex-row'>
+                                    {
+
+                                        row.map((_, indexCol) => {
+                                            const invertedIndexCol = 7 - indexCol
+                                            const square = row[invertedIndexCol]
+                                            return (
+                                                <Square
+                                                    key={invertedIndexCol}
+                                                    backgroundColor={(invertedIndexCol + invertedIndex) % 2 == 0 ? colors.chessSquareLightColor : colors.chessSquareDarkColor}
+                                                    chessPiece={square.chessPiece}
+                                                    isPossibleMove={square.isPossibleMove}
+                                                    board={chessBoardModel}
+                                                    position={currentPosition}
+                                                    setCurrentPosition={setCurrentPosition}
+                                                    chessGame={chessGame}
+                                                    setMoves={setMoves}
+                                                    row={invertedIndex}
+                                                    col={invertedIndexCol}
+                                                    isInCheck={square.isChecked}
+                                                    lockMoves={lockMoves}
+                                                    onMove={onMove}
+
+                                                />
+                                            )
+                                        })
+                                    }
+                                </View>
+                            )
+                        })
+                    )
+                }
 
             </View>
             <View className='w-full flex flex-row justify-between'>
