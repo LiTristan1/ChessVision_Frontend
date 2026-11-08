@@ -212,6 +212,29 @@ export async function updateInfo(
 
 }
 
-export async function confirmIdentity(email: string) {
+export async function deleteAccount(
 
+) {
+    const url = `${process.env.EXPO_PUBLIC_REST_BASE_URL}/player/account`
+    const accessToken = await getValueFor("Access-Token");
+    const refreshToken = await getValueFor("Refresh-Token");
+
+    try {
+        const response = await fetch(url, {
+            method: "DELETE",
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                "X-Refresh-Token": refreshToken ?? "",
+                "Content-Type": "application/json"
+            }
+        })
+
+        if (response.ok) {
+            return true;
+        }
+        return false
+    } catch (e) {
+        console.log("Error deleting account: " + e)
+        return false
+    }
 }

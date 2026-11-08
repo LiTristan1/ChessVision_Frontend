@@ -8,6 +8,7 @@ import { store } from "./Store/store";
 export default function RootLayout() {
 
   useEffect(() => {
+    //check for app level changes
     const subscription = AppState.addEventListener(
       "change",
       async (nextAppState) => {
