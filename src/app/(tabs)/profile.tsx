@@ -219,7 +219,7 @@ export default function Profile() {
             setDeleteModalVisible(false);
             // The logout route must clear local tokens/state without requiring
             // the deleted account to still exist on the server.
-            router.replace("/(pages)/loggingOut/logout");
+            router.replace("/");
         } catch (error) {
             console.error("Error deleting account:", error);
             setDeleteError("Something went wrong. Please try again.");
