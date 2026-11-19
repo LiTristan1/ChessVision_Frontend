@@ -4,7 +4,6 @@ export async function login(
     password: string
 ) {
     const url = `${process.env.EXPO_PUBLIC_REST_BASE_URL}/auth/login`
-    console.log(`Received username ${username} and password ${password}`)
     console.log(`Used url ${url}`)
     try {
 
