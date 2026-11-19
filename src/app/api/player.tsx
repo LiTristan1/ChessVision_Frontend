@@ -3,7 +3,7 @@ import { ChessVisionUser, FullProfileResponse } from "../types/responses";
 
 
 export async function getPlayerProfile() {
-    const url = `${process.env.EXPO_PUBLIC_REST_BASE_URL}/player$`
+    const url = `${process.env.EXPO_PUBLIC_REST_BASE_URL}/player`
     const accessToken = await getValueFor("Access-Token");
     const refreshToken = await getValueFor("Refresh-Token");
     try {
@@ -51,7 +51,7 @@ export async function getChessVisionUserInfo() {
 
 
 export async function getPlayerStats() {
-    const url = `${process.env.EXPO_PUBLIC_REST_BASE_URL}/player/stats$`
+    const url = `${process.env.EXPO_PUBLIC_REST_BASE_URL}/player/stats`
     const accessToken = await getValueFor("Access-Token");
     const refreshToken = await getValueFor("Refresh-Token");
 

@@ -22,16 +22,25 @@ export async function login(
         console.log("Login backend response: " + response)
         const data = await response.text()
 
-        console.log("Status:", response.status)
-        console.log("Backend response:", data)
+        if (response.ok) {
+            const accessToken = response.headers.get("X-Access-Token");
+            const refreshToken = response.headers.get("X-Refresh-Token");
 
-        await save("Access-Token", response.headers.get("X-Access-Token"))
-        await save("Refresh-Token", response.headers.get("X-Refresh-Token"))
+            if (accessToken) {
+                await save("Access-Token", accessToken);
+            }
+
+            if (refreshToken) {
+                await save("Refresh-Token", refreshToken);
+            }
+        }
+
         return response.status
     } catch (e) {
         console.log("Error logging in ", e)
     }
 }
+
 
 export async function createNewUser(
     username: string,
@@ -39,48 +48,79 @@ export async function createNewUser(
     email: string,
     chessComUsername: string
 ) {
-    const url = `${process.env.EXPO_PUBLIC_REST_BASE_URL}/auth/register`
+    const baseUrl = process.env.EXPO_PUBLIC_REST_BASE_URL;
 
+    if (!baseUrl) {
+        console.error("Missing EXPO_PUBLIC_REST_BASE_URL");
+        return {
+            status: 500,
+            message: "Backend URL is not configured"
+        };
+    }
+
+    const url = `${baseUrl.replace(/\/$/, "")}/auth/register`;
     try {
+        console.log("Register request starting:", url);
+
         const response = await fetch(url, {
-            method: 'POST',
+            method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                username: username,
-                password: password,
-                email: email,
+                username,
+                password,
+                email,
                 chess_com_username: chessComUsername
             })
-        })
+        });
 
+        console.log("Register response status:", response.status);
 
         if (response.ok) {
-            await save("Access-Token", response.headers.get("X-Access-Token"))
-            await save("Refresh-Token", response.headers.get("X-Refresh-Token"))
-            return {
-                status: 200,
-                message: "Registration Successful"
+            const accessToken = response.headers.get("X-Access-Token");
+            const refreshToken = response.headers.get("X-Refresh-Token");
+
+            if (accessToken) {
+                await save("Access-Token", accessToken);
             }
+
+            if (refreshToken) {
+                await save("Refresh-Token", refreshToken);
+            }
+
+            return {
+                status: response.status,
+                message: "Registration Successful"
+            };
         }
 
-        const response_json = await response.json()
+        const responseText = await response.text();
+        console.log("Registration failed:", response.status);
 
+        let message = "Registration failed";
+
+        try {
+            message = JSON.parse(responseText).message ?? message;
+        } catch {
+            // Backend may return plain text instead of JSON.
+        }
 
         return {
-            status: response?.status,
-            message: response_json?.message
-        }
-    } catch (e) {
+            status: response.status,
+            message
+        };
+
+    } catch (error) {
+        console.error("Registration request error:", error);
 
         return {
             status: 500,
-            message: e
-        }
+            message: "Unable to complete registration"
+        };
     }
-
 }
+
 
 export async function confirmUser(token: string) {
     try {
